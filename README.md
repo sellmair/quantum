@@ -173,3 +173,36 @@ thread and to release all resources
 ```kotlin
 quantum.quit()
 ```
+
+
+##### ViewModel (Suggestion)
+I suggest having one 'ViewState' for each ViewModel. The ViewModel itself
+might want to implement Quantum itself. 
+
+###### Example:
+
+```kotlin
+data class LoginState(
+    val email: String = "",
+    val password: String = "", 
+    val user: User? = null)
+
+class LoginViewModel(private val loginService: LoginService): 
+    ViewModel(), 
+    Quantum<LoginState> by Quantum.create(LoginStat()) {
+   
+   fun setEmail(email: String) = setState {
+        copy(email = email)
+   }                   
+   
+   fun setPassword(password: String) = setState {
+        copy(password = password)
+   }
+   
+   fun login() = setState {
+       val user = loginService.login(email, password)
+       copy(user = user)
+   }
+}
+
+```
