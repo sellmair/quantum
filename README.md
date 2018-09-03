@@ -20,7 +20,7 @@ allprojects {
 dependencies { 
     implementation "io.sellmair:quantum:0.1.0-alpha.0"
     
-    //optionally rx extensions
+    //optional rx extensions
     implementation "io.sellmair:quantum-rx:0.1.0-alpha.0"
 }
 ```
