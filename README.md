@@ -86,7 +86,7 @@ We want to
 // Reducer that fetches the content (if not currently loading)
 fun loadContent() = quantum.setState {
     // Don not try to load the content while currently loading
-    // Returning this (the current) signals the quantum that 
+    // Returning this (the current / input state) signals the quantum that 
     // this reducer was a NOOP
     if(isLoading) return@setState this
     
