@@ -192,12 +192,12 @@ internal class QuantumImpl<T>(
         }
 
         private fun actions(): List<Action<T>> = lock.withLock {
-            val actions = mutableListOf<Action<T>>()
-            if (pendingReducers.isEmpty()) {
-                actions.addAll(pendingActions)
+            if(!running) return emptyList()
+            lock.withLock {
+                val list = listOf(*pendingActions.toTypedArray())
                 pendingActions.clear()
+                return list
             }
-            actions
         }
 
 
