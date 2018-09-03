@@ -203,6 +203,11 @@ class LoginViewModel(private val loginService: LoginService):
        val user = loginService.login(email, password)
        copy(user = user)
    }
+   
+   override fun onCleared() {
+        // Quit the quantum
+        quit()
+   }
 }
 
 ```
