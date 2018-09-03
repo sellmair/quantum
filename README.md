@@ -50,7 +50,7 @@ Example:
 
 ```kotlin
 // Create a new Quantum with initial state. 
-val quantum = Quantum.create(MyState(isLoading = false, content = null))
+val quantum = Quantum.create(MyState())
 ```
 
 
