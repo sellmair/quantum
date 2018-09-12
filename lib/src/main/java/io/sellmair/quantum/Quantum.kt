@@ -83,10 +83,21 @@ interface Quantum<T> : Quitable, StateObservable<T> {
 
 
     /**
-     * It is necessary to quite this state store to
+     * Quits the current Quantum.
+     * All currently enqueued reducers and actions will be discarded.
+     * Currently running reducers will be executed
+     * It is necessary to quit this state store to
      * ensure that the internal thread is stopped and the resources can be garbage collected.
      */
-    override fun quit()
+    override fun quit(): Joinable
+
+
+    /**
+     * Quits the current Quantum.
+     * All currently enqueued reducers and actions will eb safely executed.
+     * It is necessary to quit a quantum to ensure that internal resources can be freed
+     */
+    override fun quitSafely(): Joinable
 
     companion object
 }
@@ -94,7 +105,5 @@ interface Quantum<T> : Quitable, StateObservable<T> {
 fun <T> Quantum.Companion.create(initial: T): Quantum<T> {
     return QuantumImpl(initial, StateSubject())
 }
-
-
 
 

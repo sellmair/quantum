@@ -27,6 +27,8 @@ internal class QuantumImpl<T>(
 
 
     override fun setState(reducer: Reducer<T>) {
+        if (!running || stopping) return
+
         lock.withLock {
             pendingReducers.add(reducer)
             condition.signalAll()
@@ -34,10 +36,12 @@ internal class QuantumImpl<T>(
     }
 
     override fun setStateIt(reducer: ItReducer<T>) {
+        if (!running || stopping) return
         this.setState(reducer)
     }
 
     override fun withState(action: Action<T>) {
+        if (!running || stopping) return
         lock.withLock {
             pendingActions.add(action)
             condition.signalAll()
@@ -45,15 +49,27 @@ internal class QuantumImpl<T>(
     }
 
     override fun withStateIt(action: ItAction<T>) {
+        if (!running || stopping) return
         withState(action)
     }
 
 
-    override fun quit() {
+    override fun quit(): Joinable {
         this.running = false
         lock.withLock {
             condition.signalAll()
         }
+
+        return worker.asJoinable()
+    }
+
+    override fun quitSafely(): Joinable {
+        lock.withLock {
+            stopping = true
+            condition.signalAll()
+        }
+
+        return worker.asJoinable()
     }
 
     override val history: MutableHistory<T> = SynchronizedHistory<T>().apply { enabled = false }
@@ -97,6 +113,18 @@ internal class QuantumImpl<T>(
     private var running by AtomicBoolean(true)
 
 
+    /**
+     * Indicating that [quitSafely] was called.
+     *
+     *
+     * It is possible that [running] is true while [stopping] is also true.
+     * This state is indicating that the last cycle is running
+     * while no more actions or reducers should be enqueued
+     *
+     */
+    private var stopping by AtomicBoolean(false)
+
+
     /* JOBS */
     /**
      * All reducers that are currently in the pipeline.
@@ -124,10 +152,19 @@ internal class QuantumImpl<T>(
              */
             while (running) {
                 /*
+               Stopping indicates that all reducers / actions that are currently eqnueued are
+               supposed to be executed (and no more shall be enqueued).
+               This means, that the thread is supposed to perform exactly one more loop
+               once this flag was set.
+               */
+                if (stopping) running = false
+
+                /*
                 Du a full cycle:
                 Apply reducers, perform actions & notify listener
                  */
                 cycle()
+
 
                 /*
                 Enter the lock to check weather or not there is anything left to do
@@ -135,8 +172,10 @@ internal class QuantumImpl<T>(
                 lock.withLock {
                     /*
                     Do not go to sleep if there are (new) reducers pending.
+                    Do not go to sleep if not running anymore
+                    Do not go to sleep if currently stopping
                      */
-                    if (pendingReducers.isEmpty()) {
+                    if (pendingReducers.isEmpty() && running && !stopping) {
                         condition.await()
                     }
                 }
@@ -183,7 +222,6 @@ internal class QuantumImpl<T>(
         }
 
         private fun reducers(): List<Reducer<T>> {
-            if (!running) return emptyList()
             lock.withLock {
                 val list = listOf(*pendingReducers.toTypedArray())
                 pendingReducers.clear()
@@ -192,7 +230,6 @@ internal class QuantumImpl<T>(
         }
 
         private fun actions(): List<Action<T>> = lock.withLock {
-            if(!running) return emptyList()
             lock.withLock {
                 val list = listOf(*pendingActions.toTypedArray())
                 pendingActions.clear()
