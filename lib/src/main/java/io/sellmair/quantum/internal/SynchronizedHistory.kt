@@ -29,6 +29,7 @@ internal class SynchronizedHistory<T> : MutableHistory<T> {
                 states.clear()
             }
         }
+        get() = lock.withLock { field }
 
 
     /**
@@ -54,7 +55,7 @@ internal class SynchronizedHistory<T> : MutableHistory<T> {
 
 
     override var limit: Int? = null
-        set(value) {
+        set(value) = lock.withLock {
             /*
             Don't allow negative limits.
              */
@@ -64,6 +65,7 @@ internal class SynchronizedHistory<T> : MutableHistory<T> {
 
             field = value
         }
+        get() = lock.withLock { field }
 
     /**
      * Will create a snapshot of the current history and return the snapshots
