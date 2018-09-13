@@ -209,23 +209,19 @@ class QuantumTest {
              */
             quantum.setState {
                 lock.withLock {
+
                     /*
-                    Wakeup test thread
+                    Signal outer closure that the first reducer is running now
                      */
                     condition.signalAll()
 
                     /*
-                    Wait for test thread to signal this reducer to finish
-                     */
+                   Wait for test thread to signal this reducer to finish
+                    */
                     condition.await()
                     copy(revision = 1)
                 }
             }
-
-            /*
-            Wait for first reducer to start executing
-             */
-            condition.await()
 
             /*
             Add pending reducers
@@ -236,6 +232,12 @@ class QuantumTest {
             quantum.setState { throw AssertionError("Pending reducer called") }
             quantum.setState { throw AssertionError("Pending reducer called") }
             quantum.setState { throw AssertionError("Pending reducer called") }
+
+            /*
+            Wait for the first reducer to run to ensure, that the quantum is not
+            quitted  before any reducer gets worked on.
+             */
+            condition.await()
 
             /*
             Quit the quantum now

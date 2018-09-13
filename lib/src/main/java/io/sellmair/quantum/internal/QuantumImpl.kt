@@ -27,7 +27,7 @@ internal class QuantumImpl<T>(
 
 
     override fun setState(reducer: Reducer<T>) {
-        if (!running || stopping) return
+        if (!looping || quittedSafely) return
 
         lock.withLock {
             pendingReducers.add(reducer)
@@ -36,12 +36,12 @@ internal class QuantumImpl<T>(
     }
 
     override fun setStateIt(reducer: ItReducer<T>) {
-        if (!running || stopping) return
+        if (!looping || quittedSafely) return
         this.setState(reducer)
     }
 
     override fun withState(action: Action<T>) {
-        if (!running || stopping) return
+        if (!looping || quittedSafely) return
         lock.withLock {
             pendingActions.add(action)
             condition.signalAll()
@@ -49,14 +49,15 @@ internal class QuantumImpl<T>(
     }
 
     override fun withStateIt(action: ItAction<T>) {
-        if (!running || stopping) return
+        if (!looping || quittedSafely) return
         withState(action)
     }
 
 
     override fun quit(): Joinable {
-        this.running = false
         lock.withLock {
+            this.looping = false
+            this.quitted = true
             condition.signalAll()
         }
 
@@ -65,7 +66,7 @@ internal class QuantumImpl<T>(
 
     override fun quitSafely(): Joinable {
         lock.withLock {
-            stopping = true
+            quittedSafely = true
             condition.signalAll()
         }
 
@@ -110,19 +111,27 @@ internal class QuantumImpl<T>(
      * Flag indicating whether or not the [worker] thread should stay alive.
      * @see quit
      */
-    private var running by AtomicBoolean(true)
+    private var looping by AtomicBoolean(true)
 
 
     /**
      * Indicating that [quitSafely] was called.
      *
      *
-     * It is possible that [running] is true while [stopping] is also true.
+     * It is possible that [looping] is true while [quittedSafely] is also true.
      * This state is indicating that the last cycle is running
      * while no more actions or reducers should be enqueued
      *
      */
-    private var stopping by AtomicBoolean(false)
+    private var quittedSafely by AtomicBoolean(false)
+
+
+    /**
+     * Indicating whether or not any work should be done by the Quantum.
+     * Unless [looping], this will also prevent any reducer from
+     * getting worked
+     */
+    private var quitted by AtomicBoolean(false)
 
 
     /* JOBS */
@@ -150,14 +159,14 @@ internal class QuantumImpl<T>(
             /*
             Loop until close is called (which then will set this flag to false)
              */
-            while (running) {
+            while (looping && !quitted) {
                 /*
                Stopping indicates that all reducers / actions that are currently eqnueued are
                supposed to be executed (and no more shall be enqueued).
                This means, that the thread is supposed to perform exactly one more loop
                once this flag was set.
                */
-                if (stopping) running = false
+                if (quittedSafely) looping = false
 
                 /*
                 Du a full cycle:
@@ -172,14 +181,16 @@ internal class QuantumImpl<T>(
                 lock.withLock {
                     /*
                     Do not go to sleep if there are (new) reducers pending.
-                    Do not go to sleep if not running anymore
-                    Do not go to sleep if currently stopping
+                    Do not go to sleep if not looping anymore
+                    Do not go to sleep if currently quittedSafely
+                    Do not go to sleep if quitted.
                      */
-                    if (pendingReducers.isEmpty() && running && !stopping) {
+                    if (pendingReducers.isEmpty() && looping && !quittedSafely && !quitted) {
                         condition.await()
                     }
                 }
             }
+
         }
 
         private fun cycle() {
@@ -210,6 +221,12 @@ internal class QuantumImpl<T>(
 
         private fun applyReducers() {
             for (reducer in reducers()) {
+
+                /*
+                Do not work anymore if quitted.
+                 */
+                if (quitted) return
+
                 internalState = reducer(internalState)
                 internalHistory.add(internalState)
             }
@@ -217,6 +234,11 @@ internal class QuantumImpl<T>(
 
         private fun invokeActions() {
             for (action in actions()) {
+                /*
+                Do not work anymore if quitted
+                 */
+                if (quitted) return
+
                 action(internalState)
             }
         }
