@@ -1,5 +1,6 @@
 package io.sellmair.quantum.internal
 
+import android.util.Log
 import io.sellmair.quantum.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
@@ -56,6 +57,8 @@ internal class QuantumImpl<T>(
 
     override fun quit(): Joinable {
         lock.withLock {
+            log("quit")
+
             this.looping = false
             this.quitted = true
             condition.signalAll()
@@ -66,6 +69,8 @@ internal class QuantumImpl<T>(
 
     override fun quitSafely(): Joinable {
         lock.withLock {
+            log("quitSafely")
+
             quittedSafely = true
             condition.signalAll()
         }
@@ -186,7 +191,9 @@ internal class QuantumImpl<T>(
                     Do not go to sleep if quitted.
                      */
                     if (pendingReducers.isEmpty() && looping && !quittedSafely && !quitted) {
+                        log("sleeping")
                         condition.await()
+                        log("woke up")
                     }
                 }
             }
@@ -215,12 +222,17 @@ internal class QuantumImpl<T>(
             signal that a NOOP was done!
              */
             if (previousState != internalState) {
+                log("publish new state: $internalState")
                 subject.publish(internalState)
             }
         }
 
         private fun applyReducers() {
-            for (reducer in reducers()) {
+            val reducers = reducers()
+
+            log("Cycle with ${reducers.size} reducers")
+
+            for (reducer in reducers) {
 
                 /*
                 Do not work anymore if quitted.
@@ -233,7 +245,11 @@ internal class QuantumImpl<T>(
         }
 
         private fun invokeActions() {
-            for (action in actions()) {
+            val actions = actions()
+
+            log("Cycle with ${actions.size} actions")
+
+            for (action in actions) {
                 /*
                 Do not work anymore if quitted
                  */
@@ -262,6 +278,15 @@ internal class QuantumImpl<T>(
 
     }
 
+    fun log(message: String) {
+        if (BuildConfig.DEBUG) {
+            Log.d(LOG_TAG, message)
+        }
+    }
+
+    companion object {
+        val LOG_TAG: String = QuantumImpl::class.java.simpleName
+    }
 
     init {
         subject.publish(initial)

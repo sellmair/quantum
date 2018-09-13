@@ -5,11 +5,8 @@ import io.sellmair.quantum.StateObservable
 
 val <T> StateObservable<T>.rx: Observable<T>
     get() = Observable.create<T> { emitter ->
-
-        fun onState(state: T) {
-            emitter.onNext(state)
+        this.addListener(emitter::onNext)
+        emitter.setCancellable {
+            this.removeListener(emitter::onNext)
         }
-
-        this.addListener(::onState)
-        emitter.setCancellable { this.removeListener(::onState) }
     }
