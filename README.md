@@ -11,20 +11,14 @@ State management library for Android
 ##### gradle
 ```groovy
 
-allprojects {
-    repositories {
-        maven { url "https://dl.bintray.com/sellmair/sellmair/" }
-    }
-}
-
 dependencies { 
-    implementation "io.sellmair:quantum:0.2.0-beta.0"
+    implementation "io.sellmair:quantum:0.2.0-beta.1"
     
     // optional rx extensions
-    implementation "io.sellmair:quantum-rx:0.2.0-beta.0"
+    implementation "io.sellmair:quantum-rx:0.2.0-beta.1"
     
     // optional LiveData extensions
-    implementation "io.sellmair:quantum-livedata:0.2.0-beta.0"
+    implementation "io.sellmair:quantum-livedata:0.2.0-beta.1"
 }
 ```
 
