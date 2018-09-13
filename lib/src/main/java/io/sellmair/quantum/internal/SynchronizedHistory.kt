@@ -42,6 +42,11 @@ internal class SynchronizedHistory<T>(private val initial: T) : MutableHistory<T
             states.add(state)
             val limit = this.limit
             if (limit != null) {
+
+                /*
+                Limit has to be aware of the fact that the initial state will
+                always be the first state of the history
+                 */
                 while (states.isNotEmpty() && states.size + 1 > limit) {
                     states.removeFirst()
                 }
