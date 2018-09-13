@@ -1,6 +1,10 @@
 package io.sellmair.quantum
 
 
+/**
+ * History of states.
+ * If enabled: Will always start with the initial state even if exceeded the limit.
+ */
 interface History<T> : Iterable<T> {
     /**
      * Indicates whether or not this history is allowed to collect states.
@@ -11,8 +15,10 @@ interface History<T> : Iterable<T> {
     /**
      * Maximum amount of states that are allowed in this history
      *
-     * Must be positive, 0 or null.
+     * Must be positive (>=1) or null.
      * Null indicating that there is no limit
+     *
+     * Note: The history will always start with the initial state
      */
     var limit: Int?
 

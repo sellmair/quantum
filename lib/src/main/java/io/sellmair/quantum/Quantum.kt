@@ -42,7 +42,7 @@ interface Quantum<T> : Quitable, StateObservable<T> {
     /**
      * Same as [setState]
      */
-    fun setStateIt(reducer: ItReducer<T>)
+    fun setStateIt(reducer: ItReducer<T>) = setState(reducer)
 
 
     /**
@@ -60,7 +60,7 @@ interface Quantum<T> : Quitable, StateObservable<T> {
     /**
      * Same as [withState]
      */
-    fun withStateIt(action: ItAction<T>)
+    fun withStateIt(action: ItAction<T>)= withState(action)
 
 
     /**

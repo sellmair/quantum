@@ -10,7 +10,7 @@ INTERNAL API
 ################################################################################################
 */
 
-internal class SynchronizedHistory<T> : MutableHistory<T> {
+internal class SynchronizedHistory<T>(private val initial: T) : MutableHistory<T> {
     /**
      * Lock used to synchronize access to the internal list of states [states]
      */
@@ -21,10 +21,10 @@ internal class SynchronizedHistory<T> : MutableHistory<T> {
      */
     private val states = LinkedList<T>()
 
-
     override var enabled: Boolean = false
         set(value) = lock.withLock {
             field = value
+
             if (!value) {
                 states.clear()
             }
@@ -42,7 +42,7 @@ internal class SynchronizedHistory<T> : MutableHistory<T> {
             states.add(state)
             val limit = this.limit
             if (limit != null) {
-                while (states.size > limit) {
+                while (states.isNotEmpty() && states.size + 1 > limit) {
                     states.removeFirst()
                 }
             }
@@ -59,7 +59,7 @@ internal class SynchronizedHistory<T> : MutableHistory<T> {
             /*
             Don't allow negative limits.
              */
-            if (value != null && value < 0) {
+            if (value != null && value < 1) {
                 throw IllegalStateException("Expected limit to be > 0. Was: $value")
             }
 
@@ -72,9 +72,12 @@ internal class SynchronizedHistory<T> : MutableHistory<T> {
      * iterator.
      */
     override fun iterator(): Iterator<T> = lock.withLock {
-        val list = ArrayList<T>(states.size)
-        list.addAll(states)
-        list.iterator()
+        return if (enabled) {
+            val list = ArrayList<T>(states.size)
+            list.add(initial)
+            list.addAll(states)
+            list.iterator()
+        } else emptyList<T>().iterator()
     }
 
 }

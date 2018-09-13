@@ -470,8 +470,79 @@ class QuantumTest : BaseQuantumTest() {
 
         assertEquals(1, listener.states.size)
         assertEquals(TestState(), listener.states.first())
-
     }
+
+
+    @Test
+    fun history_containsAllStates() = repeat(REPETITIONS) {
+        setup()
+
+        quantum.history.enabled = true
+
+        repeat(REPETITIONS) {
+            quantum.setState { copy(revision = revision + 1) }
+        }
+
+        quantum.quitSafely().join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+
+        assertEquals(REPETITIONS + 1, quantum.history.count())
+        assertEquals(TestState(0), quantum.history.first())
+        assertEquals(TestState(REPETITIONS), quantum.history.last())
+
+        quantum.history.zipWithNext { first, second ->
+            assertEquals(first.revision + 1, second.revision)
+        }
+    }
+
+    @Test
+    fun history_isEmptyWhenDisabled() = repeat(REPETITIONS) {
+        setup()
+        quantum.history.enabled = false
+
+        repeat(REPETITIONS) {
+            quantum.setState { copy(revision = revision + 1) }
+        }
+
+        quantum.quitSafely().join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+
+        assertEquals(0, quantum.history.count())
+    }
+
+    @Test
+    fun history_withLimit() = repeat(REPETITIONS) {
+        setup()
+        val limit = REPETITIONS / 2
+        quantum.history.enabled = true
+        quantum.history.limit = limit
+
+
+        repeat(REPETITIONS) {
+            quantum.setState { copy(revision = revision + 1) }
+        }
+
+        quantum.quitSafely().join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+
+        assertEquals(limit, quantum.history.count())
+        assertEquals(TestState(), quantum.history.first())
+        assertEquals(TestState(REPETITIONS), quantum.history.last())
+
+        quantum.history.asSequence()
+            .drop(1)
+            .zipWithNext { first, second ->
+                assertEquals(first.revision + 1, second.revision)
+            }
+    }
+
+
 }
 
 

@@ -36,20 +36,12 @@ internal class QuantumImpl<T>(
         }
     }
 
-    override fun setStateIt(reducer: ItReducer<T>) {
-        this.setState(reducer)
-    }
-
     override fun withState(action: Action<T>) {
         if (!looping || quittedSafely) return
         lock.withLock {
             pendingActions.add(action)
             condition.signalAll()
         }
-    }
-
-    override fun withStateIt(action: ItAction<T>) {
-        withState(action)
     }
 
 
@@ -76,7 +68,8 @@ internal class QuantumImpl<T>(
         return worker.asJoinable()
     }
 
-    override val history: MutableHistory<T> = SynchronizedHistory<T>().apply { enabled = false }
+    override val history: MutableHistory<T> = SynchronizedHistory(initial)
+        .apply { enabled = false }
 
     /*
     ################################################################################################
@@ -91,12 +84,6 @@ internal class QuantumImpl<T>(
      * This reference is only allowed to be altered by the [worker] thread.
      */
     private var internalState: T = initial
-
-    /**
-     * History of all states sequentially started by the initial state,
-     * ended by the current [internalState]
-     */
-    private val internalHistory = mutableListOf<T>()
 
 
     /* CONCURRENCY MEMBERS */
@@ -254,7 +241,7 @@ internal class QuantumImpl<T>(
                 if (quitted) return
 
                 internalState = reducer(internalState)
-                internalHistory.add(internalState)
+                history.add(internalState)
             }
         }
 
@@ -296,6 +283,7 @@ internal class QuantumImpl<T>(
     }
 
     init {
+        history.add(initial)
         subject.publish(initial)
         worker.start()
     }
