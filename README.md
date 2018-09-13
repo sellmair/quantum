@@ -18,10 +18,13 @@ allprojects {
 }
 
 dependencies { 
-    implementation "io.sellmair:quantum:0.1.0-alpha.0"
+    implementation "io.sellmair:quantum:0.2.0-beta.0"
     
-    //optional rx extensions
-    implementation "io.sellmair:quantum-rx:0.1.0-alpha.0"
+    // optional rx extensions
+    implementation "io.sellmair:quantum-rx:0.2.0-beta.0"
+    
+    // optional LiveData extensions
+    implementation "io.sellmair:quantum-livedata:0.2.0-beta.0"
 }
 ```
 
