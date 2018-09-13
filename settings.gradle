@@ -1,1 +1,1 @@
-include ':app', ':lib', ':rx'
+include ':app', ':lib', ':rx', ':livedata'
