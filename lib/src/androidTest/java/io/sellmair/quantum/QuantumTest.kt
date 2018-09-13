@@ -4,6 +4,7 @@ import android.os.HandlerThread
 import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.internal.QuantumImpl
 import io.sellmair.quantum.internal.StateSubject
+import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -259,6 +260,38 @@ class QuantumTest {
         assertEquals(2, listener.states.size)
         assertEquals(TestState(), listener.states.first())
         assertEquals(TestState(1), listener.states.last())
+    }
+
+
+    @Test
+    fun quitSafely_executesAllPendingReducers() {
+        /* SETUP */
+        setup()
+        quantum.addListener(listener)
+
+        quantum.setState { copy(revision = revision + 1) } // 1
+        quantum.setState { copy(revision = revision + 1) } // 2
+        quantum.setState { copy(revision = revision + 1) } // 3
+        quantum.setState { copy(revision = revision + 1) } // 4
+        quantum.setState { copy(revision = revision + 1) } // 5
+        quantum.setState { copy(revision = revision + 1) } // 6
+        quantum.setState { copy(revision = revision + 1) } // 7
+
+
+        val joinable = quantum.quitSafely()
+
+        quantum.setState { copy(revision = revision + 1) }
+        quantum.setState { copy(revision = revision + 1) }
+        quantum.setState { copy(revision = revision + 1) }
+        quantum.setState { copy(revision = revision + 1) }
+        quantum.setState { copy(revision = revision + 1) }
+
+        joinable.join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+        Assert.assertEquals(TestState(), listener.states.first())
+        Assert.assertEquals(TestState(7), listener.states.last())
     }
 }
 

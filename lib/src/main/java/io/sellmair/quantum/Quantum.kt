@@ -1,5 +1,6 @@
 package io.sellmair.quantum
 
+import android.os.Looper
 import io.sellmair.quantum.internal.QuantumImpl
 import io.sellmair.quantum.internal.StateSubject
 
@@ -102,8 +103,16 @@ interface Quantum<T> : Quitable, StateObservable<T> {
     companion object
 }
 
-fun <T> Quantum.Companion.create(initial: T): Quantum<T> {
-    return QuantumImpl(initial, StateSubject())
+/**
+ * @param initial: The initial state of the quantum.
+ * @param looper: Looper that is used to invoke listeners.
+ * Default is Androids main looper [Looper.getMainLooper] which will invoke listeners on
+ * the main thread.
+ */
+fun <T> Quantum.Companion.create(
+    initial: T,
+    looper: Looper = Looper.getMainLooper()): Quantum<T> {
+    return QuantumImpl(initial, StateSubject(looper))
 }
 
 
