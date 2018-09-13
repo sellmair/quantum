@@ -5,7 +5,7 @@ import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.internal.QuantumImpl
 import io.sellmair.quantum.internal.StateSubject
 import io.sellmair.quantum.test.common.BaseQuantumTest
-import org.junit.Assert
+import io.sellmair.quantum.test.common.TestListener
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -153,7 +153,10 @@ class QuantumTest : BaseQuantumTest() {
             listener.states.last())
     }
 
-
+    /**
+     * Ensures that no reducers (except the currently running) are executed after
+     * [Quantum.quit] was called.
+     */
     @Test
     fun quit_doesNotExecutePendingReducers() = repeat(REPETITIONS) {
 
@@ -232,8 +235,12 @@ class QuantumTest : BaseQuantumTest() {
     }
 
 
+    /**
+     * Ensures that all currently pending reducers are executed after
+     * [Quantum.quitSafely] was called
+     */
     @Test
-    fun quitSafely_executesAllPendingReducers() {
+    fun quitSafely_executesAllPendingReducers() = repeat(REPETITIONS) {
         /* SETUP */
         setup()
         quantum.addListener(listener)
@@ -259,8 +266,211 @@ class QuantumTest : BaseQuantumTest() {
         listenerThread.quitSafely()
         listenerThread.join()
 
-        Assert.assertEquals(TestState(), listener.states.first())
-        Assert.assertEquals(TestState(7), listener.states.last())
+        assertEquals(TestState(), listener.states.first())
+        assertEquals(TestState(7), listener.states.last())
+    }
+
+    @Test
+    fun singleAction_receivesLatestState() = repeat(REPETITIONS) {
+        setup()
+        quantum.addListener(listener)
+        quantum.setState { copy(revision = 1) }
+
+        val stateListener = TestListener()
+        quantum.withState(stateListener)
+        quantum.quitSafely().join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+        assertEquals(1, stateListener.states.size)
+        assertEquals(TestState(1), stateListener.states.first())
+    }
+
+
+    /**
+     * Test will check if a single action is only called once.
+     * This test will enforce that two cycles are performed by the quantum.
+     */
+    @Test
+    fun singleAction_isCalledOnce() = repeat(REPETITIONS) {
+        setup()
+
+        /*
+        Lock and condition to enable control over precise timing over quantum thread and
+        test thread
+         */
+        val lock = ReentrantLock()
+        val firstReducerRunning = lock.newCondition()
+
+        /*
+        Whole test is captured by the lock
+         */
+        lock.withLock {
+            quantum.addListener(listener)
+            quantum.setState {
+                lock.withLock {
+                    /*
+                    Notify that the first reducer is now running
+                     */
+                    firstReducerRunning.signalAll()
+                    copy(revision = 1)
+
+                }
+            }
+
+            val stateListener = TestListener()
+            quantum.withState(stateListener)
+
+            /*
+            Wait for the first reducer to run
+             */
+            firstReducerRunning.await()
+
+            /*
+            Dispatch multiple reducer afterwards.
+            This has to be handled in another cycle, because the first cycle is currently running
+             */
+            quantum.setState { copy(revision = revision + 1) }
+            quantum.setState { copy(revision = revision + 1) }
+            quantum.setState { copy(revision = revision + 1) }
+            quantum.setState { copy(revision = revision + 1) }
+            quantum.setState { copy(revision = revision + 1) }
+            quantum.setState { copy(revision = revision + 1) }
+            quantum.setState { copy(revision = revision + 1) }
+
+
+            /*
+            Quit all
+             */
+            quantum.quitSafely().join()
+            listenerThread.quitSafely()
+            listenerThread.join()
+
+            /*
+            Assert that the withState is only called once
+            and that withState is called with the correct state
+             */
+            assertEquals(1, stateListener.states.size)
+            assertEquals(TestState(1), stateListener.states.first())
+        }
+    }
+
+    /**
+     * Ensures that a single action receives the initial state of the quantum
+     * if no reducer was enqueued yet
+     */
+    @Test
+    fun singleAction_receivesInitialState() = repeat(REPETITIONS) {
+        setup()
+        quantum.addListener(listener)
+
+        val stateListener = TestListener()
+        quantum.withState(stateListener)
+        quantum.quitSafely().join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+        assertEquals(1, stateListener.states.size)
+        assertEquals(TestState(0), stateListener.states.first())
+    }
+
+    /**
+     * Ensures that a single action receives the the latest state of the quantum
+     * when there are no pending reducers
+     */
+    @Test
+    fun singleAction_receivesLatestState_noPendingReducers() = repeat(REPETITIONS) {
+        setup()
+
+        /*
+        Lock used to handle timing between the quantum thread, listener thread and test thread
+         */
+        val lock = ReentrantLock()
+        val firstCycle = lock.newCondition()
+
+        /*
+        Whole test acquires lock
+         */
+        lock.withLock {
+            quantum.addListener(listener)
+
+            /*
+            Set state with revision 1
+             */
+            quantum.setState { copy(revision = 1) }
+            quantum.addListener {
+                /*
+                Notify that the first cycle was completed!
+                 */
+                if (it.revision != 1) return@addListener
+                lock.withLock {
+                    firstCycle.signalAll()
+                }
+            }
+
+            /*
+            Wait for first cycle to complete
+             */
+            firstCycle.await()
+
+            /*
+            Dispatch an action
+             */
+            val stateListener = TestListener()
+            quantum.withState(stateListener)
+
+            /*
+            Quit all
+             */
+            quantum.quitSafely().join()
+            listenerThread.quitSafely()
+            listenerThread.join()
+
+            /*
+            Assert that action got latest state
+             */
+            assertEquals(1, stateListener.states.size)
+            assertEquals(TestState(1), stateListener.states.first())
+        }
+    }
+
+    /**
+     * Ensures that multiple actions will receive the latest state
+     */
+    @Test
+    fun multipleActions_receiveLatestState() = repeat(REPETITIONS) {
+        setup()
+        quantum.addListener(listener)
+        quantum.setState { copy(revision = 1) }
+
+        val stateListener = TestListener()
+
+        repeat(REPETITIONS) {
+            quantum.withState(stateListener)
+        }
+
+        quantum.quitSafely().join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+        assertEquals(REPETITIONS, stateListener.states.size)
+        for (state in stateListener.states) {
+            assertEquals(TestState(1), state)
+        }
+    }
+
+
+    @Test
+    fun addListener_receivesCurrentState() = repeat(REPETITIONS) {
+        setup()
+        quantum.addListener(listener)
+        quantum.quitSafely().join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+        assertEquals(1, listener.states.size)
+        assertEquals(TestState(), listener.states.first())
+
     }
 }
 

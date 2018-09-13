@@ -37,7 +37,6 @@ internal class QuantumImpl<T>(
     }
 
     override fun setStateIt(reducer: ItReducer<T>) {
-        if (!looping || quittedSafely) return
         this.setState(reducer)
     }
 
@@ -50,7 +49,6 @@ internal class QuantumImpl<T>(
     }
 
     override fun withStateIt(action: ItAction<T>) {
-        if (!looping || quittedSafely) return
         withState(action)
     }
 
@@ -207,14 +205,19 @@ internal class QuantumImpl<T>(
             val previousState = internalState
 
             /*
-            Apply all reducers (which will alter the internalState referennce)
+            Get all reducers and actions that are supposed to run in this currennt cycle
              */
-            applyReducers()
+            val cycle = pollCycle()
+
+            /*
+            Apply all reducers (which will alter the internalState reference)
+             */
+            applyReducers(cycle.reducers)
 
             /*
             Invoke all actions with the new internal state
              */
-            invokeActions()
+            invokeActions(cycle.actions)
 
             /*
             Only publish the state if it actually changed.
@@ -227,11 +230,22 @@ internal class QuantumImpl<T>(
             }
         }
 
-        private fun applyReducers() {
-            val reducers = reducers()
+        /**
+         * Creates a new cycle from all currently pending reducers and actions.
+         * Those pending reducers and actions will be cleared
+         */
+        private fun pollCycle(): Cycle<T> = lock.withLock {
+            val cycle = object : Cycle<T> {
+                override val reducers = pendingReducers.poll()
+                override val actions = pendingActions.poll()
+            }
 
-            log("Cycle with ${reducers.size} reducers")
+            log("cycle with ${cycle.reducers.size} reducers & ${cycle.actions.size} actions")
+            cycle
+        }
 
+
+        private fun applyReducers(reducers: List<Reducer<T>>) {
             for (reducer in reducers) {
 
                 /*
@@ -244,11 +258,7 @@ internal class QuantumImpl<T>(
             }
         }
 
-        private fun invokeActions() {
-            val actions = actions()
-
-            log("Cycle with ${actions.size} actions")
-
+        private fun invokeActions(actions: List<Action<T>>) {
             for (action in actions) {
                 /*
                 Do not work anymore if quitted
@@ -259,23 +269,20 @@ internal class QuantumImpl<T>(
             }
         }
 
-        private fun reducers(): List<Reducer<T>> {
-            lock.withLock {
-                val list = listOf(*pendingReducers.toTypedArray())
-                pendingReducers.clear()
-                return list
-            }
+        /**
+         * Creates a copy of the current list and clears the current list afterwards
+         */
+        private fun <T> MutableList<T>.poll(): List<T> {
+            val copy = ArrayList<T>(this.size)
+            copy.addAll(this)
+            this.clear()
+            return copy
         }
+    }
 
-        private fun actions(): List<Action<T>> = lock.withLock {
-            lock.withLock {
-                val list = listOf(*pendingActions.toTypedArray())
-                pendingActions.clear()
-                return list
-            }
-        }
-
-
+    interface Cycle<T> {
+        val reducers: List<Reducer<T>>
+        val actions: List<Action<T>>
     }
 
     fun log(message: String) {
