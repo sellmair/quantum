@@ -1,9 +1,10 @@
 package io.sellmair.quantum
 
-import android.os.HandlerThread
+import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.internal.QuantumImpl
 import io.sellmair.quantum.internal.StateSubject
+import io.sellmair.quantum.internal.test.BaseQuantumTest
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -14,42 +15,10 @@ import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
 
 @RunWith(AndroidJUnit4::class)
-class QuantumTest {
+class QuantumTest : BaseQuantumTest() {
 
-
-    companion object {
-        /**
-         * Tests in this class are executed multiple times to ensure coverage for
-         * race conditions and other strange behaviour.
-         */
-        const val REPETITIONS = 100
-    }
-
-    /**
-     * The state used to test the quantum against.
-     */
-    data class TestState(val revision: Int = 0, val payload: Any? = null)
-
-    /**
-     * Quantum instance to test
-     */
-    private lateinit var quantum: Quantum<TestState>
-
-    /**
-     * Can be used to receive events and test against.
-     */
-    private lateinit var listener: TestListener
-
-    /**
-     * Thread that invokes the listener.
-     * Needs to be closed within the test.
-     */
-    private lateinit var listenerThread: HandlerThread
-
-    fun setup() {
-        listener = TestListener()
-        listenerThread = HandlerThread("Listener-Thread").also(Thread::start)
-        quantum = QuantumImpl(TestState(), StateSubject(listenerThread.looper))
+    override fun createQuantum(looper: Looper): Quantum<TestState> {
+        return QuantumImpl(TestState(), StateSubject(looper))
     }
 
 
@@ -295,20 +264,4 @@ class QuantumTest {
     }
 }
 
-
-class TestListener : (QuantumTest.TestState) -> Unit {
-    private val lock = ReentrantLock()
-    private val condition = lock.newCondition()
-
-    private val internalStates = mutableListOf<QuantumTest.TestState>()
-    val states: List<QuantumTest.TestState>
-        get() = lock.withLock {
-            mutableListOf(*internalStates.toTypedArray())
-        }
-
-    override fun invoke(state: QuantumTest.TestState): Unit = lock.withLock {
-        internalStates.add(state)
-        condition.signalAll()
-    }
-}
 

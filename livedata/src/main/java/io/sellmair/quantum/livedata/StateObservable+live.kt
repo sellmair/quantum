@@ -37,7 +37,7 @@ private val storeLock = ReentrantLock()
  */
 @Suppress("UNCHECKED_CAST")
 private fun <T> StateObservable<T>.getExistingLiveData(): LiveData<T>? {
-    return store[this] as LiveData<T>
+    return store[this] as? LiveData<T>
 }
 
 /**
@@ -47,6 +47,7 @@ private fun <T> StateObservable<T>.getExistingLiveData(): LiveData<T>? {
 private fun <T> StateObservable<T>.createNewLiveData(): LiveData<T> {
     val liveData = MutableLiveData<T>()
     addListener(liveData::push)
+    store[this] = liveData
     return liveData
 }
 

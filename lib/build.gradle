@@ -23,10 +23,9 @@ ext {
     developerName = 'Sebastian Sellmair'
     developerEmail = 'sebastiansellmair@gmail.com'
 }
+
 android {
     compileSdkVersion 27
-
-
 
     defaultConfig {
         minSdkVersion 19
