@@ -4,7 +4,7 @@ import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.internal.QuantumImpl
 import io.sellmair.quantum.internal.StateSubject
-import io.sellmair.quantum.internal.test.BaseQuantumTest
+import io.sellmair.quantum.test.common.BaseQuantumTest
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

@@ -1,4 +1,4 @@
-package io.sellmair.quantum.internal.test
+package io.sellmair.quantum.test.common
 
 import android.os.HandlerThread
 import android.os.Looper

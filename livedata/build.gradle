@@ -58,6 +58,8 @@ dependencies {
 
     implementation "android.arch.lifecycle:extensions:1.1.1"
     implementation project(path: ':lib')
+    androidTestImplementation project(path: ':test-common')
+
 }
 repositories {
     mavenCentral()

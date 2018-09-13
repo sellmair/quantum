@@ -4,8 +4,8 @@ import android.os.Handler
 import android.os.Looper
 import io.sellmair.quantum.Quantum
 import io.sellmair.quantum.create
-import io.sellmair.quantum.internal.test.BaseQuantumTest
-import io.sellmair.quantum.internal.test.TestListener
+import io.sellmair.quantum.test.common.BaseQuantumTest
+import io.sellmair.quantum.test.common.TestListener
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test

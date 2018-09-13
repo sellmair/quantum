@@ -3,9 +3,9 @@ package io.sellmair.quantum.rx
 import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.Quantum
-import io.sellmair.quantum.internal.test.TestListener
 import io.sellmair.quantum.create
-import io.sellmair.quantum.internal.test.BaseQuantumTest
+import io.sellmair.quantum.test.common.BaseQuantumTest
+import io.sellmair.quantum.test.common.TestListener
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import org.junit.runner.RunWith
