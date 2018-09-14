@@ -60,7 +60,7 @@ Only one reducer will run at a time!
 A simple reducer that that says hallo to a certain user. 
 
 ```kotlin
-class SimpleState(val name: String, val message: String = "" )
+data class SimpleState(val name: String, val message: String = "" )
 
 val quantum = Quantum.create(SimpleState("Julian"))
 
@@ -82,7 +82,7 @@ We want to
 ```kotlin
 // Reducer that fetches the content (if not currently loading)
 fun loadContent() = quantum.setState {
-    // Don not try to load the content while currently loading
+    // Do not try to load the content while currently loading
     // Returning this (the current / input state) signals the quantum that 
     // this reducer was a NOOP
     if(isLoading) return@setState this
@@ -186,7 +186,7 @@ data class LoginState(
 
 class LoginViewModel(private val loginService: LoginService): 
     ViewModel(), 
-    Quantum<LoginState> by Quantum.create(LoginStat()) {
+    Quantum<LoginState> by Quantum.create(LoginState()) {
    
    fun setEmail(email: String) = setState {
         copy(email = email)
