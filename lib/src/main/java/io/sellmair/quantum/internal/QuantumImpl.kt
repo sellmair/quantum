@@ -260,16 +260,6 @@ internal class QuantumImpl<T>(
                 action(internalState)
             }
         }
-
-        /**
-         * Creates a copy of the current list and clears the current list afterwards
-         */
-        private fun <T> MutableList<T>.poll(): List<T> {
-            val copy = ArrayList<T>(this.size)
-            copy.addAll(this)
-            this.clear()
-            return copy
-        }
     }
 
     interface Cycle<T> {
@@ -288,6 +278,8 @@ internal class QuantumImpl<T>(
     }
 
     init {
+        // TODO: check if this is correct. initial state is already given in constructor
+        // TODO: of the history
         history.add(initial)
         subject.publish(initial)
         worker.start()
