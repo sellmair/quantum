@@ -278,9 +278,6 @@ internal class QuantumImpl<T>(
     }
 
     init {
-        // TODO: check if this is correct. initial state is already given in constructor
-        // TODO: of the history
-        history.add(initial)
         subject.publish(initial)
         worker.start()
     }

@@ -2,8 +2,9 @@ package io.sellmair.quantum
 
 import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
-import io.sellmair.quantum.internal.QuantumImpl
+import io.sellmair.quantum.internal.ExecutorServiceQuantum
 import io.sellmair.quantum.internal.StateSubject
+import io.sellmair.quantum.internal.threadPool
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.TestListener
 import org.junit.Assert.assertEquals
@@ -18,7 +19,8 @@ import kotlin.concurrent.withLock
 class QuantumTest : BaseQuantumTest() {
 
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return QuantumImpl(TestState(), StateSubject(looper))
+        //return QuantumImpl(TestState(), StateSubject(looper))
+        return ExecutorServiceQuantum(TestState(), StateSubject(looper), threadPool)
     }
 
 
