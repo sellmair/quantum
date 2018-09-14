@@ -73,6 +73,8 @@ internal class ExecutorServiceQuantum<T>(
 
     private var quittedSafely by AtomicBoolean(false)
 
+
+    // TODO: isExecuting and isStarting would make sense as enum
     private var isExecuting = false
 
     private var isStarting = false
@@ -161,7 +163,9 @@ internal class ExecutorServiceQuantum<T>(
     }
 
     private fun pollCycle() = memberLock.withLock {
-        Cycle(reducers = pendingReducers.poll(), actions = pendingActions.poll())
+        Cycle(reducers = pendingReducers.poll(), actions = pendingActions.poll()).apply {
+            log("cycle with ${reducers.size} reducers, ${actions.size} actions")
+        }
     }
 
     private fun applyReducers(reducers: List<Reducer<T>>) {
@@ -190,7 +194,9 @@ internal class ExecutorServiceQuantum<T>(
 
     private fun createJoinable(): Joinable = object : Joinable {
         override fun join() = memberLock.withLock {
-            if (!isExecuting) return@withLock
+            // TODO: If no one is currently executing && quitted or quitted safely was not called
+            // TODO: Then we will wait forever and be sad
+            if (!isExecuting && !isStarting && (quitted || quittedSafely)) return@withLock
             finishedExecutingCondition.await()
         }
     }

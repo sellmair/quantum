@@ -4,13 +4,13 @@ import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.internal.ExecutorServiceQuantum
 import io.sellmair.quantum.internal.StateSubject
-import io.sellmair.quantum.internal.threadPool
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.TestListener
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
@@ -20,7 +20,7 @@ class QuantumTest : BaseQuantumTest() {
 
     override fun createQuantum(looper: Looper): Quantum<TestState> {
         //return QuantumImpl(TestState(), StateSubject(looper))
-        return ExecutorServiceQuantum(TestState(), StateSubject(looper), threadPool)
+        return ExecutorServiceQuantum(TestState(), StateSubject(looper), Executors.newSingleThreadExecutor())
     }
 
 
@@ -32,6 +32,7 @@ class QuantumTest : BaseQuantumTest() {
     @Test
     fun singleReducer() = repeat(REPETITIONS) {
         setup()
+
         quantum.addListener(listener)
 
         quantum.setState { copy(revision = 1) }
