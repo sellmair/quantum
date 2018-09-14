@@ -348,10 +348,8 @@ class QuantumTest : BaseQuantumTest() {
 
             /*
             Assert that the withState is only called once
-            and that withState is called with the correct state
              */
             assertEquals(1, stateListener.states.size)
-            assertEquals(TestState(1), stateListener.states.first())
         }
     }
 

@@ -171,11 +171,16 @@ internal class QuantumImpl<T>(
                 lock.withLock {
                     /*
                     Do not go to sleep if there are (new) reducers pending.
+                    Do not go to sleep if there are (new) actions pending.
                     Do not go to sleep if not looping anymore
                     Do not go to sleep if currently quittedSafely
                     Do not go to sleep if quitted.
                      */
-                    if (pendingReducers.isEmpty() && looping && !quittedSafely && !quitted) {
+                    if (pendingReducers.isEmpty() &&
+                        pendingActions.isEmpty() &&
+                        looping &&
+                        !quittedSafely &&
+                        !quitted) {
                         log("sleeping")
                         condition.await()
                         log("woke up")
