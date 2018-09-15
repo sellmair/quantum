@@ -1,6 +1,5 @@
 package io.sellmair.quantum
 
-import android.os.Looper
 import io.sellmair.quantum.internal.*
 import java.util.concurrent.Executor
 
@@ -110,10 +109,15 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
 }
 
 /**
- * @param initial: The initial state of the quantum.
- * @param looper: Looper that is used to invoke listeners.
- * Default is Androids main looper [Looper.getMainLooper] which will invoke listeners on
- * the main thread.
+ * @param initial The initial state of the quantum.
+ *
+ * @param threading The threading option for this quantum.
+ * - Default value can be configured using [Quantum.Companion.configure].
+ * - Default configuration is [Threading.Pool]
+ *
+ * @param callbackExecutor The executor used to notify [StateListener]s and [QuittedListener]'s
+ * - Default value can be configured using [Quantum.Companion.configure]
+ * - Default configuration is Android's main thread
  */
 fun <T> Quantum.Companion.create(
     initial: T,
@@ -127,6 +131,10 @@ fun <T> Quantum.Companion.create(
     return quantum
 }
 
+
+/**
+ * Create a [ManagedExecutor] from a given threading optionn
+ */
 private fun managedExecutor(threading: Threading): ManagedExecutor {
     return when (threading) {
         is Threading.Sync -> ManagedExecutor.nonQuitable(Executor(Runnable::run))
@@ -136,6 +144,13 @@ private fun managedExecutor(threading: Threading): ManagedExecutor {
     }
 }
 
+/**
+ * Wrapper around [Executor] that indicates whether or not the executor
+ * should be quitted by if the quantum quitted.
+ *
+ * This is especially necessary if a new thread or thread-pool was allocated just
+ * for a quantum. This thread or thread pool needs to get quitted if the quantum died.
+ */
 private data class ManagedExecutor(
     val executor: Executor,
     val quitable: Quitable? = null) {
