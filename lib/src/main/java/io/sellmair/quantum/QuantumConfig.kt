@@ -53,7 +53,7 @@ class QuantumConfig {
     */
 
     val history = HistoryConfig()
-    
+
     class HistoryConfig {
         class Default {
             var enabled: Boolean = false
@@ -63,7 +63,4 @@ class QuantumConfig {
         val default = Default()
     }
 
-}
-
-fun test() {
 }
