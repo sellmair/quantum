@@ -23,7 +23,7 @@ class LiveDataTest : BaseQuantumTest() {
     fun liveData_receivesLastUpdate() = test {
 
         val liveListener = TestListener()
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
         quantum.live.observeForever { state ->
             if (state != null) liveListener(state)
         }

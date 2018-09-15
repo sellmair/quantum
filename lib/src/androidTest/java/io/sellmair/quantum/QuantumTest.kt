@@ -5,7 +5,7 @@ import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.internal.*
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.TestListener
-import org.junit.Assert
+import io.sellmair.quantum.test.common.TestRunnable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,7 +25,11 @@ abstract class QuantumTest : BaseQuantumTest() {
 
     final override fun createQuantum(looper: Looper): Quantum<TestState> {
         executor = createExecutor()
-        return ExecutorQuantum(TestState(), StateSubject(looper.asExecutor()), executor)
+        return ExecutorQuantum(
+            initial = TestState(),
+            stateSubject = StateSubject(looper.asExecutor()),
+            quittedSubject = QuittedSubject(looper.asExecutor()),
+            executor = executor)
     }
 
     override fun cleanup() {
@@ -54,7 +58,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      */
     @Test
     fun singleReducer() = test {
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
 
         quantum.setState { copy(revision = 1) }
         quantum.quitSafely().join()
@@ -73,7 +77,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      */
     @Test
     fun multipleReducers() = test {
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
 
         quantum.setState { copy(revision = 1) }
         quantum.setState { copy(revision = 2) }
@@ -110,7 +114,7 @@ abstract class QuantumTest : BaseQuantumTest() {
          */
         val nIncrementsPerThread = 10000
 
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
 
 
         /*
@@ -190,7 +194,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         val condition = lock.newCondition()
 
         /* SETUP */
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
 
 
         /*
@@ -263,7 +267,7 @@ abstract class QuantumTest : BaseQuantumTest() {
     @Test
     fun quitSafely_executesAllPendingReducers() = test {
         /* SETUP */
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
 
         quantum.setState { copy(revision = revision + 1) } // 1
         quantum.setState { copy(revision = revision + 1) } // 2
@@ -292,7 +296,7 @@ abstract class QuantumTest : BaseQuantumTest() {
 
     @Test
     fun singleAction_receivesLatestState() = test {
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
         quantum.setState { copy(revision = 1) }
 
         val stateListener = TestListener()
@@ -324,7 +328,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         Whole test is captured by the lock
          */
         lock.withLock {
-            quantum.addListener(listener)
+            quantum.addStateListener(listener)
             quantum.setState {
                 lock.withLock {
                     /*
@@ -377,7 +381,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      */
     @Test
     fun singleAction_receivesInitialState() = test {
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
 
         val stateListener = TestListener()
         quantum.withState(stateListener)
@@ -405,17 +409,17 @@ abstract class QuantumTest : BaseQuantumTest() {
         Whole test acquires lock
          */
         lock.withLock {
-            quantum.addListener(listener)
+            quantum.addStateListener(listener)
 
             /*
             Set state with revision 1
              */
             quantum.setState { copy(revision = 1) }
-            quantum.addListener {
+            quantum.addStateListener {
                 /*
                 Notify that the first cycle was completed!
                  */
-                if (it.revision != 1) return@addListener
+                if (it.revision != 1) return@addStateListener
                 lock.withLock {
                     firstCycle.signalAll()
                 }
@@ -452,7 +456,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      */
     @Test
     fun multipleActions_receiveLatestState() = test {
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
         quantum.setState { copy(revision = 1) }
 
         val stateListener = TestListener()
@@ -474,7 +478,7 @@ abstract class QuantumTest : BaseQuantumTest() {
 
     @Test
     fun addListener_receivesCurrentState() = test {
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
         quantum.quitSafely().join()
         listenerThread.quitSafely()
         listenerThread.join()
@@ -557,6 +561,29 @@ abstract class QuantumTest : BaseQuantumTest() {
         listenerThread.join()
     }
 
+
+    @Test
+    fun quittedObservable_isCalledWhenAlreadyQuitted() = test {
+        val runnable = TestRunnable()
+        quantum.quitSafely().join()
+        quantum.addQuittedListener(runnable)
+        listenerThread.quitSafely()
+        listenerThread.join()
+
+        assertEquals(1, runnable.executions)
+    }
+
+    @Test
+    fun quittedObservable_isCalledWhenQuitted() = test {
+        val runnable = TestRunnable()
+        quantum.addQuittedListener(runnable)
+        quantum.setState { copy(revision = 1) }
+        quantum.quitSafely().join()
+        listenerThread.quitSafely()
+        listenerThread.join()
+        assertEquals(1, runnable.executions)
+    }
+
 }
 
 
@@ -596,7 +623,7 @@ class SyncQuantumTest : QuantumTest() {
 
     @Test
     override fun quit_doesNotExecutePendingReducers() = test {
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
         quantum.setState { copy(revision = 1) }
         quantum.quit()
         quantum.setState { copy(revision = 2) }
@@ -616,8 +643,8 @@ class SyncQuantumTest : QuantumTest() {
         quantum.setState { copy(revision = 2) }
         listenerThread.quitSafely()
         listenerThread.join()
-        Assert.assertEquals(1, listener.states.size)
-        Assert.assertEquals(TestState(1), listener.states.first())
+        assertEquals(1, listener.states.size)
+        assertEquals(TestState(1), listener.states.first())
     }
 }
 

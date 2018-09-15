@@ -27,7 +27,7 @@ internal class StateSubject<T>(
 
     /**
      * The current state.
-     * This will be delivered to any listener immediately on [addListener]
+     * This will be delivered to any listener immediately on [addStateListener]
      * Synchronized via [lock]
      */
     private var state: T? = null
@@ -43,7 +43,7 @@ internal class StateSubject<T>(
      * Registers a listener.
      * The listener will be invoked with the last state (if present)
      */
-    override fun addListener(listener: StateListener<T>): Unit = lock.withLock {
+    override fun addStateListener(listener: StateListener<T>): Unit = lock.withLock {
         listeners.add(listener)
 
         /*
@@ -56,7 +56,7 @@ internal class StateSubject<T>(
         }
     }
 
-    override fun removeListener(listener: StateListener<T>): Unit = lock.withLock {
+    override fun removeStateListener(listener: StateListener<T>): Unit = lock.withLock {
         listeners.remove(listener)
     }
 

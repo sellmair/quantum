@@ -1,10 +1,7 @@
 package io.sellmair.quantum
 
 import android.os.Looper
-import io.sellmair.quantum.internal.ExecutorQuantum
-import io.sellmair.quantum.internal.SingleThreadExecutor
-import io.sellmair.quantum.internal.StateSubject
-import io.sellmair.quantum.internal.config
+import io.sellmair.quantum.internal.*
 import java.util.concurrent.Executor
 
 typealias Reducer<T> = T.() -> T
@@ -12,14 +9,14 @@ typealias Action<T> = T.() -> Unit
 typealias ItReducer<T> = (T) -> T
 typealias ItAction<T> = (T) -> Unit
 typealias StateListener<T> = (T) -> Unit
-
+typealias QuittedListener = () -> Unit
 /*
 ################################################################################################
 PUBLIC API
 ################################################################################################
 */
 
-interface Quantum<T> : Quitable, StateObservable<T> {
+interface Quantum<T> : Quitable, QuittedObservable, StateObservable<T> {
 
 
     /**
@@ -116,8 +113,9 @@ fun <T> Quantum.Companion.create(
     initial: T,
     threading: Threading = config { this.threading.default.mode },
     callback: Executor = config { this.threading.default.callback }): Quantum<T> {
-    val subject = StateSubject<T>(callback)
-    return ExecutorQuantum(initial, subject, executor(threading))
+    val stateSubject = StateSubject<T>(callback)
+    val quittedSubject = QuittedSubject(callback)
+    return ExecutorQuantum(initial, stateSubject, quittedSubject, executor(threading))
 }
 
 private fun executor(threading: Threading): Executor {

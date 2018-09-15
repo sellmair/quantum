@@ -6,10 +6,12 @@ import java.util.concurrent.locks.ReentrantLock
 
 internal class ExecutorQuantum<T>(
     initial: T,
-    private val subject: StateSubject<T>,
+    private val stateSubject: StateSubject<T>,
+    private val quittedSubject: QuittedSubject,
     private val executor: Executor) :
     Quantum<T>,
-    StateObservable<T> by subject {
+    StateObservable<T> by stateSubject,
+    QuittedObservable by quittedSubject {
 
     /*
     ################################################################################################
@@ -68,20 +70,45 @@ internal class ExecutorQuantum<T>(
     */
 
     private inner class Members {
+        /**
+         * All reducers that are currently pending for the next cycle
+         */
         val pendingReducers = mutableListOf<Reducer<T>>()
 
+        /**
+         * All actions that are currently pending for the next cycle
+         */
         val pendingActions = mutableListOf<Action<T>>()
 
+        /**
+         * Indicates whether or not [quit] was called.
+         * This Quantum won't execute any reducer / action if this is true
+         */
         var quitted = false
 
+        /**
+         * Indicating whether or not [quittedSafely] was called.
+         * This Quantum won't enqueue any new reducers or actions if true
+         */
         var quittedSafely = false
 
+        /**
+         * Indicating whether or not a thread is currently working on
+         * inside this quantum.
+         */
         var isExecuting = false
 
+        /**
+         * Indicating whether or not a thread is already requested to work on this quantum
+         * Cannot be true while [isExecuting] is also true
+         */
         var isStarting = false
 
     }
 
+    /**
+     * Locked access to the members
+     */
     private val members = Locked(Members())
 
 
@@ -101,7 +128,15 @@ internal class ExecutorQuantum<T>(
      */
     private val cycleLock = ReentrantLock()
 
+    /**
+     * Represents the current state of the quantum.
+     * This reference may only be touched while holing the cycle lock
+     */
     private var internalState: T = initial
+        set(value) {
+            require(cycleLock.isHeldByCurrentThread)
+            field = value
+        }
 
     private fun notifyWork() = members {
         /*
@@ -134,26 +169,37 @@ internal class ExecutorQuantum<T>(
         }
 
 
+        /*
+        Counter for info purposes, that counts the amount of cycles that one workload
+        executed.
+         */
         var cycles = 0
-
-        fun running(): Boolean = members {
-            val hasWorkload = pendingReducers.isNotEmpty() || pendingActions.isNotEmpty()
-
-            if (!hasWorkload) {
-                debug("Finished")
-                isExecuting = false
-                workloadFinished.signalAll()
-            }
-
-            hasWorkload
-        }
 
         while (running()) {
             cycle()
             cycles++
         }
 
+
         info("finished workload after $cycles cycles")
+        onExit()
+    }
+
+
+    /**
+     * Will check if another cycle should be executed.
+     * Will set [Members.isExecuting] to 'false' if the workload is finished.
+     * @return whether or not the current thread should run another cycle.
+     */
+    private fun running(): Boolean = members {
+        val hasWorkload = pendingReducers.isNotEmpty() || pendingActions.isNotEmpty()
+
+        if (!hasWorkload) {
+            debug("Finished")
+            isExecuting = false
+        }
+
+        hasWorkload
     }
 
 
@@ -185,7 +231,7 @@ internal class ExecutorQuantum<T>(
          */
         if (previousState != internalState) {
             info("publish new state: $internalState")
-            subject.publish(internalState)
+            stateSubject.publish(internalState)
         }
     }
 
@@ -237,9 +283,20 @@ internal class ExecutorQuantum<T>(
         }
     }
 
+    /**
+     * Called if a thread has finished its workload and leaves the [execute] function
+     */
+    private fun onExit() = members {
+        if (quitted || quittedSafely) {
+            quittedSubject.quitted()
+        }
+
+        workloadFinished.signalAll()
+    }
+
 
     init {
-        subject.publish(initial)
+        stateSubject.publish(initial)
     }
 
 }

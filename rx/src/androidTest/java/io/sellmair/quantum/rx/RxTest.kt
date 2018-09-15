@@ -20,7 +20,7 @@ class RxTest : BaseQuantumTest() {
     @Test
     fun rxListener_receivesSameEventsThanRegularListener() = test {
         val rxListener = TestListener()
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
         quantum.rx.subscribe(rxListener)
 
         quantum.setState { copy(revision = revision + 1) }
