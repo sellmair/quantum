@@ -1,9 +1,8 @@
 package io.sellmair.quantum.internal
 
-import android.os.Handler
-import android.os.Looper
 import io.sellmair.quantum.StateListener
 import io.sellmair.quantum.StateObservable
+import java.util.concurrent.Executor
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -15,14 +14,10 @@ INTERNAL API
 
 internal class StateSubject<T>(
     /**
-     * Looper used to notify all listeners
+     * Executor used to notify all listeners
      */
-    looper: Looper = Looper.getMainLooper()) : StateObservable<T> {
+    private val executor: Executor) : StateObservable<T> {
 
-    /**
-     * Handler used to notify all listeners
-     */
-    private val handler = Handler(looper)
 
     /**
      * All registered listeners.
@@ -57,7 +52,7 @@ internal class StateSubject<T>(
          */
         val state = this.state
         if (state != null) {
-            handler.post { listener(state) }
+            executor.execute { listener(state) }
         }
     }
 
@@ -84,7 +79,7 @@ internal class StateSubject<T>(
             listeners.toTypedArray()
         }
 
-        handler.post {
+        executor.execute {
             for (listener in listeners) {
                 listener(state)
             }

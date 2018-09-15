@@ -6,6 +6,7 @@ import io.sellmair.quantum.Quantum
 import io.sellmair.quantum.create
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.TestListener
+import io.sellmair.quantum.test.common.asExecutor
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -14,7 +15,7 @@ import kotlin.concurrent.withLock
 
 class LiveDataTest : BaseQuantumTest() {
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return Quantum.create(TestState(), looper)
+        return Quantum.create(TestState(), callback = looper.asExecutor())
     }
 
 
@@ -46,7 +47,7 @@ class LiveDataTest : BaseQuantumTest() {
          * Wait for main-thread idle
          */
         lock.withLock {
-            Handler(Looper.getMainLooper()).post{
+            Handler(Looper.getMainLooper()).post {
                 lock.withLock { condition.signalAll() }
             }
 

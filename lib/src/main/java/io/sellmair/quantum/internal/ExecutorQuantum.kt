@@ -1,6 +1,5 @@
 package io.sellmair.quantum.internal
 
-import android.util.Log
 import io.sellmair.quantum.*
 import java.util.concurrent.Executor
 import java.util.concurrent.locks.ReentrantLock
@@ -21,28 +20,37 @@ internal class ExecutorQuantum<T>(
     override fun setState(reducer: Reducer<T>): Unit = members {
         if (quitted || quittedSafely) return@members
         pendingReducers.add(reducer)
+        verbose("Reducer enqueued. ${pendingReducers.size} reducers pending for next cycle")
         notifyWork()
     }
 
     override fun withState(action: Action<T>): Unit = members {
         if (quitted || quittedSafely) return@members
         pendingActions.add(action)
+        verbose("Action enqueued. ${pendingActions.size} actions pending for next cycle")
         notifyWork()
     }
 
     override fun quit(): Joinable = members {
+        debug("quit")
         quitted = true
         notifyWork()
         createJoinable()
     }
 
     override fun quitSafely(): Joinable = members {
+        debug("quitSafely")
         quittedSafely = true
         notifyWork()
         createJoinable()
     }
 
-    override val history = SynchronizedHistory(initial).apply { enabled = false }
+    override val history = SynchronizedHistory(initial).also { history ->
+        config {
+            history.enabled = this.history.default.enabled
+            history.limit = this.history.default.limit
+        }
+    }
 
     /*
     ################################################################################################
@@ -114,12 +122,13 @@ internal class ExecutorQuantum<T>(
         isStarting = true
 
         executor.execute {
-            execute() ?: Log.w(QuantumImpl.LOG_TAG, "Execution occupied")
+            execute() ?: warn("Execution occupied")
         }
     }
 
     private fun execute() = cycleLock.tryWithLock {
         members {
+            debug("Started")
             isExecuting = true
             isStarting = false
         }
@@ -131,6 +140,7 @@ internal class ExecutorQuantum<T>(
             val hasWorkload = pendingReducers.isNotEmpty() || pendingActions.isNotEmpty()
 
             if (!hasWorkload) {
+                debug("Finished")
                 isExecuting = false
                 workloadFinished.signalAll()
             }
@@ -143,7 +153,7 @@ internal class ExecutorQuantum<T>(
             cycles++
         }
 
-        log("finished workload after $cycles cycles")
+        info("finished workload after $cycles cycles")
     }
 
 
@@ -174,14 +184,14 @@ internal class ExecutorQuantum<T>(
         signal that a NOOP was done!
          */
         if (previousState != internalState) {
-            log("publish new state: $internalState")
+            info("publish new state: $internalState")
             subject.publish(internalState)
         }
     }
 
     private fun pollCycle() = members {
         Cycle(reducers = pendingReducers.poll(), actions = pendingActions.poll()).apply {
-            log("cycle with ${reducers.size} reducers, ${actions.size} actions")
+            info("cycle with ${reducers.size} reducers, ${actions.size} actions")
         }
     }
 
@@ -227,11 +237,6 @@ internal class ExecutorQuantum<T>(
         }
     }
 
-    private fun log(message: String) {
-        if (BuildConfig.DEBUG && 1 == { 3 }()) {
-            Log.d(QuantumImpl.LOG_TAG, message)
-        }
-    }
 
     init {
         subject.publish(initial)

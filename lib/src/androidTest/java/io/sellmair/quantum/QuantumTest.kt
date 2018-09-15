@@ -2,8 +2,7 @@ package io.sellmair.quantum
 
 import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
-import io.sellmair.quantum.internal.ExecutorQuantum
-import io.sellmair.quantum.internal.StateSubject
+import io.sellmair.quantum.internal.*
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.TestListener
 import org.junit.Assert
@@ -26,16 +25,22 @@ abstract class QuantumTest : BaseQuantumTest() {
 
     final override fun createQuantum(looper: Looper): Quantum<TestState> {
         executor = createExecutor()
-        return ExecutorQuantum(TestState(), StateSubject(looper), executor)
+        return ExecutorQuantum(TestState(), StateSubject(looper.asExecutor()), executor)
     }
 
     override fun cleanup() {
         super.cleanup()
         val executor = executor
-        if (executor is ExecutorService) {
-            executor.shutdownNow()
-            executor.awaitTermination(1L, TimeUnit.SECONDS)
+        when (executor) {
+            is ExecutorService -> {
+                executor.shutdownNow()
+                executor.awaitTermination(1L, TimeUnit.SECONDS)
+            }
+            is Quitable -> {
+                executor.quit().join()
+            }
         }
+
     }
 
 
@@ -614,6 +619,34 @@ class SyncQuantumTest : QuantumTest() {
         Assert.assertEquals(1, listener.states.size)
         Assert.assertEquals(TestState(1), listener.states.first())
     }
+}
 
+
+@RunWith(AndroidJUnit4::class)
+class CustomSingleThreadExecutorQuantumTest : QuantumTest() {
+    override fun createExecutor(): Executor {
+        return SingleThreadExecutor()
+    }
+}
+
+@RunWith(AndroidJUnit4::class)
+class DefaultThreadPoolExecutorQuantumTest : QuantumTest() {
+
+    private lateinit var executor: ExecutorService
+
+    override fun createExecutor(): Executor {
+        return executor
+    }
+
+    override fun setup() {
+        executor = Threading.createDefaultPool()
+        super.setup()
+    }
+
+    override fun cleanup() {
+        super.cleanup()
+        executor.shutdownNow()
+        executor.awaitTermination(1L, TimeUnit.SECONDS)
+    }
 
 }
