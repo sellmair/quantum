@@ -18,7 +18,7 @@ INTERNAL API
  * The thread will be kept alive until [quit] or [quitSafely] are called.
  *
  */
-internal class SingleThreadExecutor : Executor, Quitable {
+internal class SingleThreadExecutor : QuitableExecutor {
 
     /*
     ################################################################################################
@@ -95,7 +95,7 @@ internal class SingleThreadExecutor : Executor, Quitable {
 
         private fun next(): Runnable? = queueLock.withLock {
             val next = queue.poll()
-            if (next == null && !quittedSafely && !quitted ) queueCondition.await()
+            if (next == null && !quittedSafely && !quitted) queueCondition.await()
             next
         }
 

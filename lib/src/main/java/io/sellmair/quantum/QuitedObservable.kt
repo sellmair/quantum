@@ -6,7 +6,7 @@ PUBLIC API
 ################################################################################################
 */
 
-interface QuittedObservable {
+interface QuitedObservable {
     /**
      * Add a listener to this observable.
      *

@@ -23,8 +23,8 @@ class QuantumConfig {
 
     class ThreadingConfig {
         class Default {
-            var mode: Threading = Threading.Pool()
-            var callback: Executor = Looper.getMainLooper().asExecutor()
+            var mode: Threading = Threading.Pool
+            var callbackExecutor: Executor = Looper.getMainLooper().asExecutor()
         }
 
         val default = Default()

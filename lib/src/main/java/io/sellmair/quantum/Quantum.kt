@@ -22,7 +22,7 @@ PUBLIC API
 ################################################################################################
 */
 
-interface Quantum<T> : Quitable, QuittedObservable, StateObservable<T> {
+interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
 
 
     /**
@@ -118,19 +118,38 @@ interface Quantum<T> : Quitable, QuittedObservable, StateObservable<T> {
 fun <T> Quantum.Companion.create(
     initial: T,
     threading: Threading = config { this.threading.default.mode },
-    callback: Executor = config { this.threading.default.callback }): Quantum<T> {
-    val stateSubject = StateSubject<T>(callback)
-    val quittedSubject = QuittedSubject(callback)
-    return ExecutorQuantum(initial, stateSubject, quittedSubject, executor(threading))
+    callbackExecutor: Executor = config { this.threading.default.callbackExecutor }): Quantum<T> {
+    val stateSubject = StateSubject<T>(callbackExecutor)
+    val quittedSubject = QuitedSubject(callbackExecutor)
+    val managedExecutor = managedExecutor(threading)
+    val quantum = ExecutorQuantum(initial, stateSubject, quittedSubject, managedExecutor.executor)
+    quantum.addQuittedListener { managedExecutor.quitable?.quitSafely() }
+    return quantum
 }
 
-private fun executor(threading: Threading): Executor {
+private fun managedExecutor(threading: Threading): ManagedExecutor {
     return when (threading) {
-        is Threading.Sync -> Executor(Runnable::run)
-        is Threading.Pool -> config { this.threading.pool }
-        is Threading.Thread -> SingleThreadExecutor()
-        is Threading.Custom -> threading.executor
+        is Threading.Sync -> ManagedExecutor.nonQuitable(Executor(Runnable::run))
+        is Threading.Pool -> ManagedExecutor.nonQuitable(config { this.threading.pool })
+        is Threading.Thread -> ManagedExecutor.quitable(SingleThreadExecutor())
+        is Threading.Custom -> ManagedExecutor.nonQuitable(threading.executor)
     }
 }
+
+private data class ManagedExecutor(
+    val executor: Executor,
+    val quitable: Quitable? = null) {
+    companion object {
+        fun quitable(executor: QuitableExecutor): ManagedExecutor {
+            return ManagedExecutor(executor, executor)
+        }
+
+        fun nonQuitable(executor: Executor): ManagedExecutor {
+            return ManagedExecutor(executor, null)
+        }
+    }
+}
+
+
 
 

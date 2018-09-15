@@ -9,9 +9,9 @@ PUBLIC API
 */
 
 sealed class Threading {
-    class Sync : Threading()
-    class Pool : Threading()
-    class Thread : Threading()
-    class Custom(val executor: Executor) : Threading()
+    object Sync : Threading()
+    object Pool : Threading()
+    object Thread : Threading()
+    data class Custom(val executor: Executor) : Threading()
     companion object
 }

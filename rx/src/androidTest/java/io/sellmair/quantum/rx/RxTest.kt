@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class RxTest : BaseQuantumTest() {
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return Quantum.create(TestState(), callback = looper.asExecutor())
+        return Quantum.create(TestState(), callbackExecutor = looper.asExecutor())
     }
 
     @Test

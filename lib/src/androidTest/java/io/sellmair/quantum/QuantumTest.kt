@@ -28,7 +28,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         return ExecutorQuantum(
             initial = TestState(),
             stateSubject = StateSubject(looper.asExecutor()),
-            quittedSubject = QuittedSubject(looper.asExecutor()),
+            quittedSubject = QuitedSubject(looper.asExecutor()),
             executor = executor)
     }
 

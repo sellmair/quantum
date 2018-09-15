@@ -15,7 +15,7 @@ import kotlin.concurrent.withLock
 
 class LiveDataTest : BaseQuantumTest() {
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return Quantum.create(TestState(), callback = looper.asExecutor())
+        return Quantum.create(TestState(), callbackExecutor = looper.asExecutor())
     }
 
 
