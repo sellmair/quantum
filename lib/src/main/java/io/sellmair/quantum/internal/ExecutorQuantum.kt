@@ -2,15 +2,13 @@ package io.sellmair.quantum.internal
 
 import android.util.Log
 import io.sellmair.quantum.*
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.Executor
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
-internal class ExecutorServiceQuantum<T>(
+internal class ExecutorQuantum<T>(
     initial: T,
     private val subject: StateSubject<T>,
-    private val service: ExecutorService) :
+    private val executor: Executor) :
     Quantum<T>,
     StateObservable<T> by subject {
 
@@ -20,29 +18,63 @@ internal class ExecutorServiceQuantum<T>(
     ################################################################################################
     */
 
-    override fun setState(reducer: Reducer<T>): Unit = memberLock.withLock {
-        if (quitted || quittedSafely) return
+    override fun setState(reducer: Reducer<T>): Unit = members {
+        if (quitted || quittedSafely) return@members
         pendingReducers.add(reducer)
         notifyWork()
     }
 
-    override fun withState(action: Action<T>): Unit = memberLock.withLock {
-        if (quitted || quittedSafely) return
+    override fun withState(action: Action<T>): Unit = members {
+        if (quitted || quittedSafely) return@members
         pendingActions.add(action)
         notifyWork()
     }
 
-    override fun quit(): Joinable {
+    override fun quit(): Joinable = members {
         quitted = true
-        return createJoinable()
+        notifyWork()
+        createJoinable()
     }
 
-    override fun quitSafely(): Joinable {
+    override fun quitSafely(): Joinable = members {
         quittedSafely = true
-        return createJoinable()
+        notifyWork()
+        createJoinable()
     }
 
     override val history = SynchronizedHistory(initial).apply { enabled = false }
+
+    /*
+    ################################################################################################
+    PRIVATE: Definitions
+    ################################################################################################
+    */
+
+    data class Cycle<T>(val reducers: List<Reducer<T>>, val actions: List<Action<T>>)
+
+
+    /*
+    ################################################################################################
+    PRIVATE: Locked Members
+    ################################################################################################
+    */
+
+    private inner class Members {
+        val pendingReducers = mutableListOf<Reducer<T>>()
+
+        val pendingActions = mutableListOf<Action<T>>()
+
+        var quitted = false
+
+        var quittedSafely = false
+
+        var isExecuting = false
+
+        var isStarting = false
+
+    }
+
+    private val members = Locked(Members())
 
 
     /*
@@ -52,11 +84,9 @@ internal class ExecutorServiceQuantum<T>(
     */
 
     /**
-     * Lock used to synchronize members of this quantum
+     * Condition will signal all once the a thread finished the whole workload
      */
-    private val memberLock = ReentrantLock()
-
-    private val finishedExecutingCondition = memberLock.newCondition()
+    private val workloadFinished = members.newCondition()
 
     /**
      * Lock used to ensure that only one thread can enter a cycle
@@ -65,30 +95,16 @@ internal class ExecutorServiceQuantum<T>(
 
     private var internalState: T = initial
 
-    private val pendingReducers = mutableListOf<Reducer<T>>()
-
-    private val pendingActions = mutableListOf<Action<T>>()
-
-    private var quitted by AtomicBoolean(false)
-
-    private var quittedSafely by AtomicBoolean(false)
-
-
-    // TODO: isExecuting and isStarting would make sense as enum
-    private var isExecuting = false
-
-    private var isStarting = false
-
-    private fun notifyWork() = memberLock.withLock {
+    private fun notifyWork() = members {
         /*
         No action required if currently running
          */
-        if (isExecuting) return@withLock
+        if (isExecuting) return@members
 
         /*
         No action required if currently starting
          */
-        if (isStarting) return@withLock
+        if (isStarting) return@members
 
 
         /*
@@ -97,31 +113,32 @@ internal class ExecutorServiceQuantum<T>(
          */
         isStarting = true
 
-        service.execute {
-            execute()
+        executor.execute {
+            execute() ?: Log.w(QuantumImpl.LOG_TAG, "Execution occupied")
         }
     }
 
     private fun execute() = cycleLock.tryWithLock {
-        memberLock.withLock {
+        members {
             isExecuting = true
             isStarting = false
         }
 
+
         var cycles = 0
 
-        fun run(): Boolean = memberLock.withLock {
+        fun running(): Boolean = members {
             val hasWorkload = pendingReducers.isNotEmpty() || pendingActions.isNotEmpty()
 
             if (!hasWorkload) {
                 isExecuting = false
-                finishedExecutingCondition.signalAll()
+                workloadFinished.signalAll()
             }
 
             hasWorkload
         }
 
-        while (run()) {
+        while (running()) {
             cycle()
             cycles++
         }
@@ -162,7 +179,7 @@ internal class ExecutorServiceQuantum<T>(
         }
     }
 
-    private fun pollCycle() = memberLock.withLock {
+    private fun pollCycle() = members {
         Cycle(reducers = pendingReducers.poll(), actions = pendingActions.poll()).apply {
             log("cycle with ${reducers.size} reducers, ${actions.size} actions")
         }
@@ -174,7 +191,7 @@ internal class ExecutorServiceQuantum<T>(
             /*
             Do not work anymore if quitted.
              */
-            if (quitted) return
+            if (members { quitted }) return
 
             internalState = reducer(internalState)
             history.add(internalState)
@@ -186,25 +203,32 @@ internal class ExecutorServiceQuantum<T>(
             /*
             Do not work anymore if quitted
              */
-            if (quitted) return
+            if (members { quitted }) return
 
             action(internalState)
         }
     }
 
-    private fun createJoinable(): Joinable = object : Joinable {
-        override fun join() = memberLock.withLock {
-            // TODO: If no one is currently executing && quitted or quitted safely was not called
-            // TODO: Then we will wait forever and be sad
-            if (!isExecuting && !isStarting && (quitted || quittedSafely)) return@withLock
-            finishedExecutingCondition.await()
+    private fun createJoinable(): Joinable {
+        return object : Joinable {
+            override fun join() = members {
+                fun isWorking() = isExecuting || isStarting
+                fun isQuitting() = quitted || quittedSafely
+                fun isNotQuitting() = !isQuitting()
+                fun shouldWait(): Boolean {
+                    check(members.isHeldByCurrentThread)
+                    return isWorking() || isNotQuitting()
+                }
+
+                while (shouldWait()) {
+                    workloadFinished.await()
+                }
+            }
         }
     }
 
-    data class Cycle<T>(val reducers: List<Reducer<T>>, val actions: List<Action<T>>)
-
     private fun log(message: String) {
-        if (BuildConfig.DEBUG) {
+        if (BuildConfig.DEBUG && 1 == { 3 }()) {
             Log.d(QuantumImpl.LOG_TAG, message)
         }
     }
@@ -214,3 +238,4 @@ internal class ExecutorServiceQuantum<T>(
     }
 
 }
+

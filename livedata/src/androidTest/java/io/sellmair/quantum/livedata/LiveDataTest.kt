@@ -19,8 +19,7 @@ class LiveDataTest : BaseQuantumTest() {
 
 
     @Test
-    fun liveData_receivesLastUpdate() = repeat(REPETITIONS) {
-        setup()
+    fun liveData_receivesLastUpdate() = test {
 
         val liveListener = TestListener()
         quantum.addListener(listener)
@@ -60,16 +59,14 @@ class LiveDataTest : BaseQuantumTest() {
     }
 
     @Test
-    fun liveData_isSameInstanceForSameQuantum() = repeat(REPETITIONS) {
-        setup()
+    fun liveData_isSameInstanceForSameQuantum() = test {
         assertEquals(quantum.live, quantum.live)
         assertEquals(quantum.live, quantum.live)
         quantum.quit().join()
     }
 
     @Test
-    fun liveData_isNotSameInstanceForNotSameQuantum() = repeat(REPETITIONS) {
-        setup()
+    fun liveData_isNotSameInstanceForNotSameQuantum() = test {
         val otherQuantum = Quantum.create(TestState())
         Assert.assertNotEquals(quantum.live, otherQuantum.live)
         Assert.assertNotEquals(quantum.live, otherQuantum.live)

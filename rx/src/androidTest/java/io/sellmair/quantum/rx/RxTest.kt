@@ -17,9 +17,7 @@ class RxTest : BaseQuantumTest() {
     }
 
     @Test
-    fun rxListener_receivesSameEventsThanRegularListener() {
-        setup()
-
+    fun rxListener_receivesSameEventsThanRegularListener() = test {
         val rxListener = TestListener()
         quantum.addListener(listener)
         quantum.rx.subscribe(rxListener)
