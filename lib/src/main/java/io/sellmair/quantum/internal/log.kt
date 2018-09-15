@@ -3,6 +3,12 @@ package io.sellmair.quantum.internal
 import android.util.Log
 import io.sellmair.quantum.LogLevel
 
+/*
+################################################################################################
+INTERNAL API
+################################################################################################
+*/
+
 internal fun info(message: String) {
     when (level) {
         LogLevel.NONE -> noop()

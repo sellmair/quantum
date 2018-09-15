@@ -6,6 +6,12 @@ import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
+/*
+################################################################################################
+INTERNAL API
+################################################################################################
+*/
+
 internal fun Threading.Companion.createDefaultPool(): ExecutorService {
     return ThreadPoolExecutor(
         1, // core size

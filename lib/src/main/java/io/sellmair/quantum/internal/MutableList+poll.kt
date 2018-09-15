@@ -1,5 +1,10 @@
 package io.sellmair.quantum.internal
 
+/*
+################################################################################################
+INTERNAL API
+################################################################################################
+*/
 
 /**
  * Creates a copy of the current list and clears the current list afterwards

@@ -4,6 +4,12 @@ import android.os.Looper
 import io.sellmair.quantum.internal.*
 import java.util.concurrent.Executor
 
+/*
+################################################################################################
+PUBLIC API
+################################################################################################
+*/
+
 typealias Reducer<T> = T.() -> T
 typealias Action<T> = T.() -> Unit
 typealias ItReducer<T> = (T) -> T

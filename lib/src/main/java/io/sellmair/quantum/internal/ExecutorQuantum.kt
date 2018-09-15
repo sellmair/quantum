@@ -4,6 +4,12 @@ import io.sellmair.quantum.*
 import java.util.concurrent.Executor
 import java.util.concurrent.locks.ReentrantLock
 
+/*
+################################################################################################
+INTERNAL API
+################################################################################################
+*/
+
 internal class ExecutorQuantum<T>(
     initial: T,
     private val stateSubject: StateSubject<T>,
