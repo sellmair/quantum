@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="460" src="https://github.com/sellmair/quantum/blob/feature/1-executorservice-based-quantum/logo/medium.png?raw=true">
+  <img width="460" src="https://github.com/sellmair/quantum/blob/feature/1-executorservice-based-quantum/logo/medium.png?raw=true"><br>
   State management library for Android
 </p>
 
