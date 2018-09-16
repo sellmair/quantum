@@ -101,7 +101,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      * The order of published states is asserted.
      */
     @Test
-    fun multipleReducers_fromRandomThreads() = test(REPETITIONS / 10) {
+    fun multipleReducers_fromRandomThreads() = test(repetitions = REPETITIONS / 50) {
 
 
         /*
