@@ -14,13 +14,13 @@
 ```groovy
 
 dependencies { 
-    implementation "io.sellmair:quantum:0.3.0"
+    implementation "io.sellmair:quantum:0.3.1"
     
     // optional rx extensions
-    implementation "io.sellmair:quantum-rx:0.3.0"
+    implementation "io.sellmair:quantum-rx:0.3.1"
     
     // optional LiveData extensions
-    implementation "io.sellmair:quantum-livedata:0.3.0"
+    implementation "io.sellmair:quantum-livedata:0.3.1"
 }
 ```
 
