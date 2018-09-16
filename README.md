@@ -1,9 +1,11 @@
 <p align="center">
   <img width="460" src="https://github.com/sellmair/quantum/blob/feature/1-executorservice-based-quantum/logo/medium.png?raw=true"><br>
-  State management library for Android
 </p>
+<br>
+<br>
+<br>
 
-
+## State management library for Android
 ![GitHub top language](https://img.shields.io/github/languages/top/sellmair/quantum.svg)
 [![Build Status](https://travis-ci.org/sellmair/quantum.svg?branch=develop)](https://travis-ci.org/sellmair/quantum)
 ![Bintray](https://img.shields.io/bintray/v/sellmair/sellmair/quantum.svg)
