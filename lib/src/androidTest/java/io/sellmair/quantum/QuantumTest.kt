@@ -140,7 +140,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         wait for all reducers to be enqueued
          */
         for (thread in threads) {
-            thread.assertJoin()
+            thread.assertJoin(1L, TimeUnit.MINUTES)
         }
 
 
