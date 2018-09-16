@@ -1,4 +1,8 @@
 # Quantum 
+
+![Kompass](https://github.com/sellmair/quantum/blob/feature/1-executorservice-based-quantum/logo/big.png?raw=true)
+
+
 State management library for Android
 
 ![GitHub top language](https://img.shields.io/github/languages/top/sellmair/quantum.svg)
