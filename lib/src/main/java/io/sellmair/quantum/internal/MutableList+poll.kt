@@ -1,15 +1,17 @@
 package io.sellmair.quantum.internal
 
-import io.sellmair.quantum.Joinable
-
 /*
 ################################################################################################
 INTERNAL API
 ################################################################################################
 */
 
-internal fun Thread.asJoinable(): Joinable = object : Joinable {
-    override fun join() {
-        this@asJoinable.join()
-    }
+/**
+ * Creates a copy of the current list and clears the current list afterwards
+ */
+internal fun <T> MutableList<T>.poll(): List<T> {
+    val copy = ArrayList<T>(this.size)
+    copy.addAll(this)
+    this.clear()
+    return copy
 }

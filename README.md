@@ -1,6 +1,8 @@
-# Quantum 
-State management library for Android
+<p align="left">
+  <img width="512" src="https://github.com/sellmair/quantum/blob/feature/1-executorservice-based-quantum/logo/medium.png?raw=true"><br>
+</p>
 
+## State management library for Android
 ![GitHub top language](https://img.shields.io/github/languages/top/sellmair/quantum.svg)
 [![Build Status](https://travis-ci.org/sellmair/quantum.svg?branch=develop)](https://travis-ci.org/sellmair/quantum)
 ![Bintray](https://img.shields.io/bintray/v/sellmair/sellmair/quantum.svg)
@@ -12,13 +14,13 @@ State management library for Android
 ```groovy
 
 dependencies { 
-    implementation "io.sellmair:quantum:0.2.2"
+    implementation "io.sellmair:quantum:0.3.0"
     
     // optional rx extensions
-    implementation "io.sellmair:quantum-rx:0.2.2"
+    implementation "io.sellmair:quantum-rx:0.3.0"
     
     // optional LiveData extensions
-    implementation "io.sellmair:quantum-livedata:0.2.2"
+    implementation "io.sellmair:quantum-livedata:0.3.0"
 }
 ```
 

@@ -6,6 +6,7 @@ import io.sellmair.quantum.Quantum
 import io.sellmair.quantum.create
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.TestListener
+import io.sellmair.quantum.test.common.asExecutor
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -14,16 +15,15 @@ import kotlin.concurrent.withLock
 
 class LiveDataTest : BaseQuantumTest() {
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return Quantum.create(TestState(), looper)
+        return Quantum.create(TestState(), callbackExecutor = looper.asExecutor())
     }
 
 
     @Test
-    fun liveData_receivesLastUpdate() = repeat(REPETITIONS) {
-        setup()
+    fun liveData_receivesLastUpdate() = test {
 
         val liveListener = TestListener()
-        quantum.addListener(listener)
+        quantum.addStateListener(listener)
         quantum.live.observeForever { state ->
             if (state != null) liveListener(state)
         }
@@ -47,7 +47,7 @@ class LiveDataTest : BaseQuantumTest() {
          * Wait for main-thread idle
          */
         lock.withLock {
-            Handler(Looper.getMainLooper()).post{
+            Handler(Looper.getMainLooper()).post {
                 lock.withLock { condition.signalAll() }
             }
 
@@ -60,16 +60,14 @@ class LiveDataTest : BaseQuantumTest() {
     }
 
     @Test
-    fun liveData_isSameInstanceForSameQuantum() = repeat(REPETITIONS) {
-        setup()
+    fun liveData_isSameInstanceForSameQuantum() = test {
         assertEquals(quantum.live, quantum.live)
         assertEquals(quantum.live, quantum.live)
         quantum.quit().join()
     }
 
     @Test
-    fun liveData_isNotSameInstanceForNotSameQuantum() = repeat(REPETITIONS) {
-        setup()
+    fun liveData_isNotSameInstanceForNotSameQuantum() = test {
         val otherQuantum = Quantum.create(TestState())
         Assert.assertNotEquals(quantum.live, otherQuantum.live)
         Assert.assertNotEquals(quantum.live, otherQuantum.live)

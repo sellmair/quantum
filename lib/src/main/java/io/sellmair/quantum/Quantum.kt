@@ -1,14 +1,7 @@
 package io.sellmair.quantum
 
-import android.os.Looper
-import io.sellmair.quantum.internal.QuantumImpl
-import io.sellmair.quantum.internal.StateSubject
-
-typealias Reducer<T> = T.() -> T
-typealias Action<T> = T.() -> Unit
-typealias ItReducer<T> = (T) -> T
-typealias ItAction<T> = (T) -> Unit
-typealias StateListener<T> = (T) -> Unit
+import io.sellmair.quantum.internal.*
+import java.util.concurrent.Executor
 
 /*
 ################################################################################################
@@ -16,7 +9,19 @@ PUBLIC API
 ################################################################################################
 */
 
-interface Quantum<T> : Quitable, StateObservable<T> {
+typealias Reducer<T> = T.() -> T
+typealias Action<T> = T.() -> Unit
+typealias ItReducer<T> = (T) -> T
+typealias ItAction<T> = (T) -> Unit
+typealias StateListener<T> = (T) -> Unit
+typealias QuittedListener = () -> Unit
+/*
+################################################################################################
+PUBLIC API
+################################################################################################
+*/
+
+interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
 
 
     /**
@@ -60,7 +65,7 @@ interface Quantum<T> : Quitable, StateObservable<T> {
     /**
      * Same as [withState]
      */
-    fun withStateIt(action: ItAction<T>)= withState(action)
+    fun withStateIt(action: ItAction<T>) = withState(action)
 
 
     /**
@@ -104,15 +109,62 @@ interface Quantum<T> : Quitable, StateObservable<T> {
 }
 
 /**
- * @param initial: The initial state of the quantum.
- * @param looper: Looper that is used to invoke listeners.
- * Default is Androids main looper [Looper.getMainLooper] which will invoke listeners on
- * the main thread.
+ * @param initial The initial state of the quantum.
+ *
+ * @param threading The threading option for this quantum.
+ * - Default value can be configured using [Quantum.Companion.configure].
+ * - Default configuration is [Threading.Pool]
+ *
+ * @param callbackExecutor The executor used to notify [StateListener]s and [QuittedListener]'s
+ * - Default value can be configured using [Quantum.Companion.configure]
+ * - Default configuration is Android's main thread
  */
 fun <T> Quantum.Companion.create(
     initial: T,
-    looper: Looper = Looper.getMainLooper()): Quantum<T> {
-    return QuantumImpl(initial, StateSubject(looper))
+    threading: Threading = config { this.threading.default.mode },
+    callbackExecutor: Executor = config { this.threading.default.callbackExecutor }): Quantum<T> {
+    val stateSubject = StateSubject<T>(callbackExecutor)
+    val quittedSubject = QuitedSubject(callbackExecutor)
+    val managedExecutor = managedExecutor(threading)
+    val quantum = ExecutorQuantum(initial, stateSubject, quittedSubject, managedExecutor.executor)
+    quantum.addQuittedListener { managedExecutor.quitable?.quitSafely() }
+    return quantum
 }
+
+
+/**
+ * Create a [ManagedExecutor] from a given threading optionn
+ */
+private fun managedExecutor(threading: Threading): ManagedExecutor {
+    return when (threading) {
+        is Threading.Sync -> ManagedExecutor.nonQuitable(Executor(Runnable::run))
+        is Threading.Pool -> ManagedExecutor.nonQuitable(config { this.threading.pool })
+        is Threading.Thread -> ManagedExecutor.quitable(SingleThreadExecutor())
+        is Threading.Custom -> ManagedExecutor.nonQuitable(threading.executor)
+    }
+}
+
+/**
+ * Wrapper around [Executor] that indicates whether or not the executor
+ * should be quitted by if the quantum quitted.
+ *
+ * This is especially necessary if a new thread or thread-pool was allocated just
+ * for a quantum. This thread or thread pool needs to get quitted if the quantum died.
+ */
+private data class ManagedExecutor(
+    val executor: Executor,
+    val quitable: Quitable? = null) {
+    companion object {
+        fun quitable(executor: QuitableExecutor): ManagedExecutor {
+            return ManagedExecutor(executor, executor)
+        }
+
+        fun nonQuitable(executor: Executor): ManagedExecutor {
+            return ManagedExecutor(executor, null)
+        }
+    }
+}
+
+
 
 

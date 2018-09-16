@@ -35,12 +35,28 @@ abstract class BaseQuantumTest {
      */
     protected lateinit var listenerThread: HandlerThread
 
-    fun setup() {
+    open fun setup() {
         listener = TestListener()
         listenerThread = HandlerThread("Listener-Thread").also(Thread::start)
         quantum = createQuantum(listenerThread.looper)
     }
 
+    open fun cleanup() {
+        quantum.quit().join()
+        listenerThread.quit()
+        listenerThread.join()
+    }
+
+    fun test(repetitions: Int = REPETITIONS, block: () -> Unit) {
+        repeat(repetitions) {
+            setup()
+            try {
+                block()
+            } finally {
+                cleanup()
+            }
+        }
+    }
 
     abstract fun createQuantum(looper: Looper): Quantum<TestState>
 }

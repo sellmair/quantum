@@ -1,9 +1,8 @@
 package io.sellmair.quantum.internal
 
-import android.os.Handler
-import android.os.Looper
 import io.sellmair.quantum.StateListener
 import io.sellmair.quantum.StateObservable
+import java.util.concurrent.Executor
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -15,14 +14,10 @@ INTERNAL API
 
 internal class StateSubject<T>(
     /**
-     * Looper used to notify all listeners
+     * Executor used to notify all listeners
      */
-    looper: Looper = Looper.getMainLooper()) : StateObservable<T> {
+    private val executor: Executor) : StateObservable<T> {
 
-    /**
-     * Handler used to notify all listeners
-     */
-    private val handler = Handler(looper)
 
     /**
      * All registered listeners.
@@ -32,7 +27,7 @@ internal class StateSubject<T>(
 
     /**
      * The current state.
-     * This will be delivered to any listener immediately on [addListener]
+     * This will be delivered to any listener immediately on [addStateListener]
      * Synchronized via [lock]
      */
     private var state: T? = null
@@ -48,7 +43,7 @@ internal class StateSubject<T>(
      * Registers a listener.
      * The listener will be invoked with the last state (if present)
      */
-    override fun addListener(listener: StateListener<T>): Unit = lock.withLock {
+    override fun addStateListener(listener: StateListener<T>): Unit = lock.withLock {
         listeners.add(listener)
 
         /*
@@ -57,11 +52,11 @@ internal class StateSubject<T>(
          */
         val state = this.state
         if (state != null) {
-            handler.post { listener(state) }
+            executor.execute { listener(state) }
         }
     }
 
-    override fun removeListener(listener: StateListener<T>): Unit = lock.withLock {
+    override fun removeStateListener(listener: StateListener<T>): Unit = lock.withLock {
         listeners.remove(listener)
     }
 
@@ -84,7 +79,7 @@ internal class StateSubject<T>(
             listeners.toTypedArray()
         }
 
-        handler.post {
+        executor.execute {
             for (listener in listeners) {
                 listener(state)
             }

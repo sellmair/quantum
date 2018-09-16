@@ -1,15 +1,13 @@
 package io.sellmair.quantum
 
+import io.sellmair.quantum.internal.config
+
 /*
 ################################################################################################
 PUBLIC API
 ################################################################################################
 */
 
-interface Joinable {
-    /**
-     * Will wait the current thread until the target dies.
-     * @see Thread.join
-     */
-    fun join()
+fun Quantum.Companion.configure(configuration: QuantumConfig.() -> Unit) {
+    config(configuration)
 }
