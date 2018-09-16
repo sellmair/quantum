@@ -12,7 +12,7 @@ abstract class BaseQuantumTest {
          * Tests in this class are executed multiple times to ensure coverage for
          * race conditions and other strange behaviour.
          */
-        const val REPETITIONS = 1000
+        const val REPETITIONS = 100
     }
 
     /**
