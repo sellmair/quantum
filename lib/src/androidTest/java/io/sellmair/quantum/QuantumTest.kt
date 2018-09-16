@@ -147,7 +147,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         /*
         Wait for shutdown
          */
-        quantum.quitSafely().assertJoin(5L, TimeUnit.MINUTES)
+        quantum.quitSafely().assertJoin(1L, TimeUnit.MINUTES)
         listenerThread.quitSafely()
         listenerThread.assertJoin()
 
