@@ -1,4 +1,4 @@
-![Kompass](https://github.com/sellmair/quantum/blob/feature/1-executorservice-based-quantum/logo/big.png?raw=true)
+![Kompass](https://github.com/sellmair/quantum/blob/feature/1-executorservice-based-quantum/logo/medium.png?raw=true)
 
 
 State management library for Android
