@@ -292,15 +292,7 @@ internal class ExecutorQuantum<T>(
     private fun createJoinable(): Joinable {
         return object : Joinable {
             override fun join() = members {
-                fun isWorking() = isExecuting || isStarting
-                fun isQuitting() = quitted || quittedSafely
-                fun isNotQuitting() = !isQuitting()
-                fun shouldWait(): Boolean {
-                    check(members.isHeldByCurrentThread)
-                    return isWorking() || isNotQuitting()
-                }
-
-                while (shouldWait()) {
+                while (isAlive) {
                     workloadFinished.await()
                 }
             }
