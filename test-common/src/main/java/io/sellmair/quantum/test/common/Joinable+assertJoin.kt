@@ -5,8 +5,8 @@ import io.sellmair.quantum.internal.asJoinable
 import org.junit.Assert
 import java.util.concurrent.TimeUnit
 
-private const val defaultTimeout = 1L
-private val defaultUnit = TimeUnit.MINUTES
+private const val defaultTimeout = 10L
+private val defaultUnit = TimeUnit.SECONDS
 
 fun Joinable.assertJoin(timeout: Long = defaultTimeout, unit: TimeUnit = defaultUnit) {
     val joined = this.join(timeout, unit)

@@ -101,7 +101,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      * The order of published states is asserted.
      */
     @Test
-    fun multipleReducers_fromRandomThreads() = test(repetitions = REPETITIONS / 50) {
+    open fun multipleReducers_fromRandomThreads() = test(repetitions = REPETITIONS / 50) {
 
 
         /*
@@ -628,6 +628,11 @@ class FixedThreadPoolQuantumTest : QuantumTest() {
     override fun createExecutor(): Executor {
         return Executors.newFixedThreadPool(12)
     }
+
+    @Test
+    override fun multipleReducers_fromRandomThreads() {
+        super.multipleReducers_fromRandomThreads()
+    }
 }
 
 @RunWith(AndroidJUnit4::class)
@@ -676,7 +681,6 @@ class SyncQuantumTest : QuantumTest() {
         assertEquals(1, listener.states.size)
         assertEquals(TestState(1), listener.states.first())
     }
-
 
     /**
      * Disable test for sync version because of deadlocking
