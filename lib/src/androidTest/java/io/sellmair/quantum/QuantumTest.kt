@@ -7,8 +7,7 @@ import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.TestListener
 import io.sellmair.quantum.test.common.TestRunnable
 import io.sellmair.quantum.test.common.assertJoin
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.Executor
@@ -556,10 +555,36 @@ abstract class QuantumTest : BaseQuantumTest() {
 
 
     @Test
-    fun quit_withoutReducers_releasesassertJoin() = test {
+    fun quit_withoutReducers_releasesJoin() = test {
         quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
         listenerThread.assertJoin()
+    }
+
+    @Test
+    open fun quit_withBlockedReducer_joinWithTimeout_returnsFalse() = test {
+        val lock = ReentrantLock()
+        val condition = lock.newCondition()
+
+        quantum.setState {
+            lock.withLock {
+                condition.await()
+                copy(revision = 1)
+            }
+        }
+
+
+        val joined = quantum.quitSafely().join(5L, TimeUnit.MILLISECONDS)
+        lock.withLock { condition.signalAll() }
+
+        assertFalse(joined)
+    }
+
+    @Test
+    fun quit_joinWithTimeout_returnsTrue() = test {
+        quantum.setState { copy(revision = 1) }
+        val joined = quantum.quitSafely().join(100L, TimeUnit.MILLISECONDS)
+        assertTrue(joined)
     }
 
 
@@ -653,6 +678,13 @@ class SyncQuantumTest : QuantumTest() {
         assertEquals(1, listener.states.size)
         assertEquals(TestState(1), listener.states.first())
     }
+
+
+    /**
+     * Disable test for sync version because of deadlocking
+     */
+    @Test
+    override fun quit_withBlockedReducer_joinWithTimeout_returnsFalse() = Unit
 }
 
 
