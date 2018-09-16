@@ -1,5 +1,3 @@
-# Quantum 
-
 ![Kompass](https://github.com/sellmair/quantum/blob/feature/1-executorservice-based-quantum/logo/big.png?raw=true)
 
 
