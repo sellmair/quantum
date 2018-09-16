@@ -641,6 +641,7 @@ class SyncQuantumTest : QuantumTest() {
         quantum.setState { copy(revision = 1) }
         quantum.withState(listener)
         quantum.setState { copy(revision = 2) }
+        quantum.quitSafely().join()
         listenerThread.quitSafely()
         listenerThread.join()
         assertEquals(1, listener.states.size)
