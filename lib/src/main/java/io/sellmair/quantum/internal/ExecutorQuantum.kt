@@ -2,6 +2,7 @@ package io.sellmair.quantum.internal
 
 import io.sellmair.quantum.*
 import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 
 /*
@@ -304,9 +305,10 @@ internal class ExecutorQuantum<T>(
 
     private fun createJoinable(): Joinable {
         return object : Joinable {
-            override fun join() = members {
+            private fun join(await: Await): Boolean = members {
+
                 while (isAlive) {
-                    threadExit.await()
+                    if (!await()) return@members false
                 }
 
 
@@ -325,8 +327,20 @@ internal class ExecutorQuantum<T>(
                     check(pendingReducers.isEmpty())
                     check(pendingActions.isEmpty())
                 }
+
+
+                true
             }
+
+            override fun join() {
+                join(threadExit.asAwait())
+            }
+
+            override fun join(timeout: Long, unit: TimeUnit) =
+                join(threadExit.asAwait(timeout, unit))
         }
+
+
     }
 
     /**

@@ -6,6 +6,7 @@ import io.sellmair.quantum.internal.*
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.TestListener
 import io.sellmair.quantum.test.common.TestRunnable
+import io.sellmair.quantum.test.common.assertJoin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,7 +42,7 @@ abstract class QuantumTest : BaseQuantumTest() {
                 executor.awaitTermination(1L, TimeUnit.SECONDS)
             }
             is Quitable -> {
-                executor.quit().join()
+                executor.quit().assertJoin()
             }
         }
 
@@ -61,9 +62,9 @@ abstract class QuantumTest : BaseQuantumTest() {
         quantum.addStateListener(listener)
 
         quantum.setState { copy(revision = 1) }
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(2, listener.states.size)
         assertEquals(TestState(), listener.states[0])
@@ -87,9 +88,9 @@ abstract class QuantumTest : BaseQuantumTest() {
         quantum.setState { copy(revision = 6) }
         quantum.setState { copy(revision = 7) }
 
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(TestState(), listener.states.first())
         assertEquals(TestState(7), listener.states.last())
@@ -118,7 +119,7 @@ abstract class QuantumTest : BaseQuantumTest() {
 
 
         /*
-        Hold a reference to all created threads to join them later
+        Hold a reference to all created threads to assertJoin them later
          */
         val threads = mutableListOf<Thread>()
 
@@ -136,20 +137,20 @@ abstract class QuantumTest : BaseQuantumTest() {
         }
 
         /*
-        Now join on all of those threads to
+        Now assertJoin on all of those threads to
         wait for all reducers to be enqueued
          */
         for (thread in threads) {
-            thread.join()
+            thread.assertJoin()
         }
 
 
         /*
         Wait for shutdown
          */
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
 
         /*
@@ -247,11 +248,11 @@ abstract class QuantumTest : BaseQuantumTest() {
                 condition.signalAll()
             }
         } /*
-        Finally join the quantum to die
-        */.join()
+        Finally assertJoin the quantum to die
+        */.assertJoin()
 
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         /* Expect initial state and reducer */
         assertEquals(2, listener.states.size)
@@ -278,7 +279,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         quantum.setState { copy(revision = revision + 1) } // 7
 
 
-        val joinable = quantum.quitSafely()
+        val assertJoinable = quantum.quitSafely()
 
         quantum.setState { copy(revision = revision + 1) }
         quantum.setState { copy(revision = revision + 1) }
@@ -286,9 +287,9 @@ abstract class QuantumTest : BaseQuantumTest() {
         quantum.setState { copy(revision = revision + 1) }
         quantum.setState { copy(revision = revision + 1) }
 
-        joinable.join()
+        assertJoinable.assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(TestState(), listener.states.first())
         assertEquals(TestState(7), listener.states.last())
@@ -301,9 +302,9 @@ abstract class QuantumTest : BaseQuantumTest() {
 
         val stateListener = TestListener()
         quantum.withState(stateListener)
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(1, stateListener.states.size)
         assertEquals(TestState(1), stateListener.states.first())
@@ -364,9 +365,9 @@ abstract class QuantumTest : BaseQuantumTest() {
             /*
             Quit all
              */
-            quantum.quitSafely().join()
+            quantum.quitSafely().assertJoin()
             listenerThread.quitSafely()
-            listenerThread.join()
+            listenerThread.assertJoin()
 
             /*
             Assert that the withState is only called once
@@ -385,9 +386,9 @@ abstract class QuantumTest : BaseQuantumTest() {
 
         val stateListener = TestListener()
         quantum.withState(stateListener)
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(1, stateListener.states.size)
         assertEquals(TestState(0), stateListener.states.first())
@@ -439,9 +440,9 @@ abstract class QuantumTest : BaseQuantumTest() {
             /*
             Quit all
              */
-            quantum.quitSafely().join()
+            quantum.quitSafely().assertJoin()
             listenerThread.quitSafely()
-            listenerThread.join()
+            listenerThread.assertJoin()
 
             /*
             Assert that action got latest state
@@ -465,9 +466,9 @@ abstract class QuantumTest : BaseQuantumTest() {
             quantum.withState(stateListener)
         }
 
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(REPETITIONS, stateListener.states.size)
         for (state in stateListener.states) {
@@ -479,9 +480,9 @@ abstract class QuantumTest : BaseQuantumTest() {
     @Test
     fun addListener_receivesCurrentState() = test {
         quantum.addStateListener(listener)
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(1, listener.states.size)
         assertEquals(TestState(), listener.states.first())
@@ -496,9 +497,9 @@ abstract class QuantumTest : BaseQuantumTest() {
             quantum.setState { copy(revision = revision + 1) }
         }
 
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
 
         assertEquals(REPETITIONS + 1, quantum.history.count())
@@ -518,9 +519,9 @@ abstract class QuantumTest : BaseQuantumTest() {
             quantum.setState { copy(revision = revision + 1) }
         }
 
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
 
         assertEquals(0, quantum.history.count())
@@ -537,9 +538,9 @@ abstract class QuantumTest : BaseQuantumTest() {
             quantum.setState { copy(revision = revision + 1) }
         }
 
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
 
         assertEquals(limit, quantum.history.count())
@@ -555,20 +556,20 @@ abstract class QuantumTest : BaseQuantumTest() {
 
 
     @Test
-    fun quit_withoutReducers_releasesJoin() = test {
-        quantum.quitSafely().join()
+    fun quit_withoutReducers_releasesassertJoin() = test {
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
     }
 
 
     @Test
     fun quittedObservable_isCalledWhenAlreadyQuitted() = test {
         val runnable = TestRunnable()
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         quantum.addQuittedListener(runnable)
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(1, runnable.executions)
     }
@@ -578,9 +579,9 @@ abstract class QuantumTest : BaseQuantumTest() {
         val runnable = TestRunnable()
         quantum.addQuittedListener(runnable)
         quantum.setState { copy(revision = 1) }
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
         assertEquals(1, runnable.executions)
     }
 
@@ -634,7 +635,7 @@ class SyncQuantumTest : QuantumTest() {
         quantum.setState { copy(revision = 2) }
 
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
 
         assertEquals(2, listener.states.size)
         assertEquals(TestState(), listener.states.first())
@@ -646,9 +647,9 @@ class SyncQuantumTest : QuantumTest() {
         quantum.setState { copy(revision = 1) }
         quantum.withState(listener)
         quantum.setState { copy(revision = 2) }
-        quantum.quitSafely().join()
+        quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
-        listenerThread.join()
+        listenerThread.assertJoin()
         assertEquals(1, listener.states.size)
         assertEquals(TestState(1), listener.states.first())
     }

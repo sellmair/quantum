@@ -1,15 +1,23 @@
 package io.sellmair.quantum.internal
 
 import io.sellmair.quantum.Joinable
+import java.util.concurrent.TimeUnit
 
 /*
 ################################################################################################
-INTERNAL API
+PUBLISHED INTERNAL API
 ################################################################################################
 */
 
-internal fun Thread.asJoinable(): Joinable = object : Joinable {
+fun Thread.asJoinable(): Joinable = object : Joinable {
+    val thread = this@asJoinable
+
     override fun join() {
-        this@asJoinable.join()
+        thread.join()
+    }
+
+    override fun join(timeout: Long, unit: TimeUnit): Boolean {
+        thread.join(unit.toMillis(timeout))
+        return !thread.isAlive
     }
 }

@@ -43,9 +43,9 @@ abstract class BaseQuantumTest {
     }
 
     open fun cleanup() {
-        quantum.quit().join()
+        quantum.quit().assertJoin()
         listenerThread.quit()
-        listenerThread.join()
+        listenerThread.assertJoin()
     }
 
     fun test(repetitions: Int = REPETITIONS, block: () -> Unit) {
