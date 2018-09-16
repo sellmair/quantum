@@ -28,7 +28,7 @@ class QuantumConfig {
         }
 
         val default = Default()
-        val pool = Threading.createDefaultPool()
+        var pool = Threading.createDefaultPool()
     }
 
 

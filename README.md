@@ -55,7 +55,7 @@ val quantum = Quantum.create(MyState())
 
 ##### Enqueue a Reducer
 Reducers are functions that take the current state and create a new state. 
-Reducers will always be called by the internal thread of the quantum. 
+Reducers will always be called by a internal thread of the quantum. 
 Only one reducer will run at a time!
 
 ###### Example (simple reducer): 
@@ -113,12 +113,13 @@ fun onError(error: Error) = setState {
 ```
 
 ##### Listen for changes
-Listeners are always invoked by the main thread of your application!
+Listeners are invoked by Android's main thread by default. 
+It is possible to configure the thread which invokes listeners by specifying an Executor.
 
 ###### Example: Without Extensions, Rare
 
 ```kotlin
-quantum.addListener { state -> print(state.message) }
+quantum.addStateListener { state -> print(state.message) }
 ```
 
 ###### Example: Without Extensions, Function
@@ -170,7 +171,8 @@ A Quantum has to be stopped if no longer needed to stop the internal background
 thread and to release all resources 
 
 ```kotlin
-quantum.quit()
+quantum.quit() // will quit as fast as possible
+quantum.quitSafely() // will quit after all currently enqueued reducers / actions
 ```
 
 
@@ -210,3 +212,47 @@ class LoginViewModel(private val loginService: LoginService):
 }
 
 ```
+
+
+#### Configuration
+It is possible to configure the default configuration of Quantum for your whole application. 
+For example: It is possible to specify the default threading mode, history settings 
+or even the thread pool that is shared for multiple Quantum instances.
+
+##### Global configuration
+```kotlin
+// configure defaults
+Quantum.configure {
+    // Quantum instances will use the given thread pool by default
+    this.threading.default.mode = Threading.Pool
+            
+    // Listeners are now invoked by a new background thread
+    this.threading.default.callbackExecutor = Executors.newSingleThreadExecutor()
+            
+    // Override the default shared thread pool
+    this.threading.pool = Executors.newCachedThreadPool()
+            
+    // Set history default to enabled with limit of 100 states
+    this.history.default.enabled = true
+    this.history.default.limit = 100
+            
+    // Get info's from quantum
+    this.logging.level = LogLevel.INFO
+}
+```
+
+##### Instance configuration
+
+```kotlin
+ Quantum.create(
+        // initial state
+        initial = LoginState(), 
+        
+        // invoke listeners by background thread
+        callbackExecutor = Executors.newSingleThreadExecutor(),
+        
+        // use thread pool 
+        threading = Threading.Pool)
+```
+
+
