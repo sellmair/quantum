@@ -562,22 +562,20 @@ abstract class QuantumTest : BaseQuantumTest() {
     }
 
     @Test
-    open fun quit_withBlockedReducer_joinWithTimeout_returnsFalse() = test {
+    open fun quit_withBlockedReducer_joinWithTimeout_returnsFalse() = test(REPETITIONS) {
         val lock = ReentrantLock()
-        val condition = lock.newCondition()
 
-        quantum.setState {
-            lock.withLock {
-                condition.await()
-                copy(revision = 1)
+        lock.withLock {
+            quantum.setState {
+                lock.withLock {
+                    copy(revision = 1)
+                }
             }
+
+
+            val joined = quantum.quitSafely().join(5L, TimeUnit.MILLISECONDS)
+            assertFalse(joined)
         }
-
-
-        val joined = quantum.quitSafely().join(5L, TimeUnit.MILLISECONDS)
-        lock.withLock { condition.signalAll() }
-
-        assertFalse(joined)
     }
 
     @Test
