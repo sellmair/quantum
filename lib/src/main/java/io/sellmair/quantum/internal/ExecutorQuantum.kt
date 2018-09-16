@@ -140,7 +140,7 @@ internal class ExecutorQuantum<T>(
     /**
      * Condition will signal all once the a thread finished the whole workload
      */
-    private val workloadFinished = members.newCondition()
+    private val threadExit = members.newCondition()
 
     /**
      * Lock used to ensure that only one thread can enter a cycle
@@ -180,6 +180,8 @@ internal class ExecutorQuantum<T>(
          */
         isStarting = true
 
+        debug("Starting")
+
         executor.execute {
             execute() ?: warn("Execution occupied")
         }
@@ -188,6 +190,11 @@ internal class ExecutorQuantum<T>(
     private fun execute() = cycleLock.tryWithLock {
         members {
             debug("Started")
+
+            /* Checks */
+            check(!isExecuting)
+            check(isStarting)
+
             isExecuting = true
             isStarting = false
         }
@@ -206,7 +213,6 @@ internal class ExecutorQuantum<T>(
 
 
         info("finished workload after $cycles cycles")
-        onExit()
     }
 
 
@@ -216,11 +222,18 @@ internal class ExecutorQuantum<T>(
      * @return whether or not the current thread should run another cycle.
      */
     private fun running(): Boolean = members {
+
+        /* Checks */
+        check(isAlive) // obviously quantum has to be alive
+        check(isExecuting) // obviously we are currently executing
+        check(!isStarting) // It is not allowed to start something during execution
+
         val hasWorkload = pendingReducers.isNotEmpty() || pendingActions.isNotEmpty()
 
         if (!hasWorkload) {
             debug("Finished")
             isExecuting = false
+            onExit()
         }
 
         hasWorkload
@@ -293,7 +306,24 @@ internal class ExecutorQuantum<T>(
         return object : Joinable {
             override fun join() = members {
                 while (isAlive) {
-                    workloadFinished.await()
+                    threadExit.await()
+                }
+
+
+                /*
+                Would not make sense if not alive anymore, but never quitted
+                 */
+                check(members.isHeldByCurrentThread)
+                check(!isAlive)
+                check(quitted || quittedSafely)
+
+                /*
+                After not alive anymore and just quittedSafely:
+                Expect all reducers and actions to be executed
+                 */
+                if (!quitted && quittedSafely) {
+                    check(pendingReducers.isEmpty())
+                    check(pendingActions.isEmpty())
                 }
             }
         }
@@ -303,12 +333,29 @@ internal class ExecutorQuantum<T>(
      * Called if a thread has finished its workload and leaves the [execute] function
      */
     private fun onExit() = members {
+        check(isAlive)
+
+        /*
+         If not quitted, than the exit was with 'quittedSafely' which requires that all
+         pending reducers and actions are executed
+          */
+        if (!quitted && quittedSafely) {
+            check(pendingReducers.isEmpty())
+            check(pendingActions.isEmpty())
+        }
+
+
         if (quitted || quittedSafely) {
+
+            /*
+            After quitted or quittedSafely an exiting thread means that the quantum is not alive
+            anymore (and therefore fully quitted).
+             */
             isAlive = false
             quittedSubject.quitted()
         }
 
-        workloadFinished.signalAll()
+        threadExit.signalAll()
     }
 
 

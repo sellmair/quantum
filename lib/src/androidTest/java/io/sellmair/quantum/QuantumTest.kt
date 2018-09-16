@@ -101,7 +101,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      * The order of published states is asserted.
      */
     @Test
-    fun multipleReducers_fromRandomThreads() = test(10) {
+    fun multipleReducers_fromRandomThreads() = test(REPETITIONS / 10) {
 
 
         /*
@@ -398,7 +398,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      * when there are no pending reducers
      */
     @Test
-    fun singleAction_receivesLatestState_noPendingReducers() = test {
+    open fun singleAction_receivesLatestState_noPendingReducers() = test {
         /*
         Lock used to handle timing between the quantum thread, listener thread and test thread
          */
@@ -591,6 +591,11 @@ abstract class QuantumTest : BaseQuantumTest() {
 class SingleThreadExecutorQuantumTest : QuantumTest() {
     override fun createExecutor(): Executor {
         return Executors.newSingleThreadExecutor()
+    }
+
+    @Test
+    override fun singleAction_receivesLatestState_noPendingReducers() {
+        super.singleAction_receivesLatestState_noPendingReducers()
     }
 }
 
