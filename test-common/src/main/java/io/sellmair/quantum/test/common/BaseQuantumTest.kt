@@ -2,6 +2,7 @@ package io.sellmair.quantum.test.common
 
 import android.os.HandlerThread
 import android.os.Looper
+import android.util.Log
 import io.sellmair.quantum.Quantum
 
 abstract class BaseQuantumTest {
@@ -49,6 +50,7 @@ abstract class BaseQuantumTest {
 
     fun test(repetitions: Int = REPETITIONS, block: () -> Unit) {
         repeat(repetitions) {
+            Log.i("BaseQuantumTest", "Rep $it/$repetitions")
             setup()
             try {
                 block()

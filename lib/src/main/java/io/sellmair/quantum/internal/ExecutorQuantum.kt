@@ -40,16 +40,21 @@ internal class ExecutorQuantum<T>(
     }
 
     override fun quit(): Joinable = members {
-        debug("quit")
-        quitted = true
-        notifyWork()
+        if (!quitted && isAlive) {
+            debug("quit")
+            quitted = true
+            notifyWork()
+        }
+
         createJoinable()
     }
 
     override fun quitSafely(): Joinable = members {
-        debug("quitSafely")
-        quittedSafely = true
-        notifyWork()
+        if (!quittedSafely && isAlive) {
+            debug("quitSafely")
+            quittedSafely = true
+            notifyWork()
+        }
         createJoinable()
     }
 
@@ -98,6 +103,14 @@ internal class ExecutorQuantum<T>(
          */
         var quittedSafely = false
 
+
+        /**
+         * Indicating whether or not the alive.
+         * This will be set to false after [quit] or [quittedSafely] was called
+         * and the workload finished.
+         */
+        var isAlive = true
+
         /**
          * Indicating whether or not a thread is currently working on
          * inside this quantum.
@@ -145,6 +158,11 @@ internal class ExecutorQuantum<T>(
         }
 
     private fun notifyWork() = members {
+        /*
+        No action required if not alive anymore
+         */
+        if (!isAlive) return@members
+
         /*
         No action required if currently running
          */
@@ -294,6 +312,7 @@ internal class ExecutorQuantum<T>(
      */
     private fun onExit() = members {
         if (quitted || quittedSafely) {
+            isAlive = false
             quittedSubject.quitted()
         }
 
