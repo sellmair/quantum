@@ -5,8 +5,9 @@ import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.Quantum
 import io.sellmair.quantum.create
 import io.sellmair.quantum.test.common.BaseQuantumTest
+import io.sellmair.quantum.test.common.Repeat
 import io.sellmair.quantum.test.common.TestListener
-import io.sellmair.quantum.test.common.asExecutor
+import io.sellmair.quantum.test.common.executor
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,11 +15,12 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class RxTest : BaseQuantumTest() {
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return Quantum.create(TestState(), callbackExecutor = looper.asExecutor())
+        return Quantum.create(TestState(), callbackExecutor = looper.executor())
     }
 
+    @Repeat(REPETITIONS)
     @Test
-    fun rxListener_receivesSameEventsThanRegularListener() = test {
+    fun rxListener_receivesSameEventsThanRegularListener() {
         val rxListener = TestListener()
         quantum.addStateListener(listener)
         quantum.rx.subscribe(rxListener)

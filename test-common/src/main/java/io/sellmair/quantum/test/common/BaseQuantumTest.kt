@@ -2,8 +2,10 @@ package io.sellmair.quantum.test.common
 
 import android.os.HandlerThread
 import android.os.Looper
-import android.util.Log
 import io.sellmair.quantum.Quantum
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
 
 abstract class BaseQuantumTest {
 
@@ -36,29 +38,23 @@ abstract class BaseQuantumTest {
      */
     protected lateinit var listenerThread: HandlerThread
 
+    @Before
     open fun setup() {
         listener = TestListener()
         listenerThread = HandlerThread("Listener-Thread").also(Thread::start)
         quantum = createQuantum(listenerThread.looper)
     }
 
+    @After
     open fun cleanup() {
         quantum.quit().assertJoin(message = "cleanup, quantum")
         listenerThread.quit()
         listenerThread.assertJoin(message = "cleanup, listenerThread")
     }
 
-    fun test(repetitions: Int = REPETITIONS, block: () -> Unit) {
-        repeat(repetitions) {
-            Log.i("BaseQuantumTest", "Rep $it/$repetitions")
-            setup()
-            try {
-                block()
-            } finally {
-                cleanup()
-            }
-        }
-    }
+    @Rule
+    @JvmField
+    val repeat = RepeatRule()
 
     abstract fun createQuantum(looper: Looper): Quantum<TestState>
 }
