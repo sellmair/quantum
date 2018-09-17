@@ -140,16 +140,16 @@ abstract class QuantumTest : BaseQuantumTest() {
         wait for all reducers to be enqueued
          */
         for (thread in threads) {
-            thread.assertJoin(5L, TimeUnit.MINUTES)
+            thread.assertJoin(5L, TimeUnit.MINUTES, message = "random thread")
         }
 
 
         /*
         Wait for shutdown
          */
-        quantum.quitSafely().assertJoin(5L, TimeUnit.MINUTES)
+        quantum.quitSafely().assertJoin(5L, TimeUnit.MINUTES, message = "quantum")
         listenerThread.quitSafely()
-        listenerThread.assertJoin()
+        listenerThread.assertJoin(message = "listener thread")
 
 
         /*
