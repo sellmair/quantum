@@ -142,7 +142,7 @@ abstract class QuantumTest : BaseQuantumTest() {
             }
 
             if (!enqueueFinished.asAwait(1L, TimeUnit.MINUTES).await()) {
-                fail("Failed to wait for enqueuing reducers")
+                fail("Failed to wait for enqueuing reducers. Finished: ${threadsFinished.get()}")
             }
         }
 
