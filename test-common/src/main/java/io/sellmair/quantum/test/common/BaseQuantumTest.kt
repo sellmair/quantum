@@ -3,7 +3,9 @@ package io.sellmair.quantum.test.common
 import android.os.HandlerThread
 import android.os.Looper
 import android.util.Log
+import io.sellmair.quantum.LogLevel
 import io.sellmair.quantum.Quantum
+import io.sellmair.quantum.configure
 
 abstract class BaseQuantumTest {
 
@@ -37,6 +39,7 @@ abstract class BaseQuantumTest {
     protected lateinit var listenerThread: HandlerThread
 
     open fun setup() {
+        Quantum.configure { logging.level = LogLevel.DEBUG }
         listener = TestListener()
         listenerThread = HandlerThread("Listener-Thread").also(Thread::start)
         quantum = createQuantum(listenerThread.looper)
