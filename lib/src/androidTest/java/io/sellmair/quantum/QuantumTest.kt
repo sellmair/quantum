@@ -102,7 +102,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      * The order of published states is asserted.
      */
     @Test
-    open fun multipleReducers_fromRandomThreads() = test(repetitions = REPETITIONS / 50) {
+    open fun multipleReducers_fromRandomThreads() = test(repetitions = 1) {
 
         val lock = ReentrantLock()
         val enqueueFinished = lock.newCondition()
@@ -110,12 +110,12 @@ abstract class QuantumTest : BaseQuantumTest() {
         /*
         Defines how many threads are created at once
          */
-        val nThreads = 15
+        val nThreads = 12
 
         /*
         Defines how many increments one thread should perform
          */
-        val nIncrementsPerThread = 10000
+        val nIncrementsPerThread = 1000
 
         quantum.addStateListener(listener)
 
