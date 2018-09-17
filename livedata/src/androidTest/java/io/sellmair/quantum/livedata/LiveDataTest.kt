@@ -5,8 +5,9 @@ import android.os.Looper
 import io.sellmair.quantum.Quantum
 import io.sellmair.quantum.create
 import io.sellmair.quantum.test.common.BaseQuantumTest
+import io.sellmair.quantum.test.common.Repeat
 import io.sellmair.quantum.test.common.TestListener
-import io.sellmair.quantum.test.common.asExecutor
+import io.sellmair.quantum.test.common.executor
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -15,12 +16,13 @@ import kotlin.concurrent.withLock
 
 class LiveDataTest : BaseQuantumTest() {
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return Quantum.create(TestState(), callbackExecutor = looper.asExecutor())
+        return Quantum.create(TestState(), callbackExecutor = looper.executor())
     }
 
 
+    @Repeat(REPETITIONS)
     @Test
-    fun liveData_receivesLastUpdate() = test {
+    fun liveData_receivesLastUpdate() {
 
         val liveListener = TestListener()
         quantum.addStateListener(listener)
@@ -59,15 +61,17 @@ class LiveDataTest : BaseQuantumTest() {
 
     }
 
+    @Repeat(REPETITIONS)
     @Test
-    fun liveData_isSameInstanceForSameQuantum() = test {
+    fun liveData_isSameInstanceForSameQuantum() {
         assertEquals(quantum.live, quantum.live)
         assertEquals(quantum.live, quantum.live)
         quantum.quit().join()
     }
 
+    @Repeat(REPETITIONS)
     @Test
-    fun liveData_isNotSameInstanceForNotSameQuantum() = test {
+    fun liveData_isNotSameInstanceForNotSameQuantum() {
         val otherQuantum = Quantum.create(TestState())
         Assert.assertNotEquals(quantum.live, otherQuantum.live)
         Assert.assertNotEquals(quantum.live, otherQuantum.live)

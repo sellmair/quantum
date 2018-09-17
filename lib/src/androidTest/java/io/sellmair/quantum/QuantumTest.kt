@@ -3,10 +3,8 @@ package io.sellmair.quantum
 import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.internal.*
-import io.sellmair.quantum.test.common.BaseQuantumTest
-import io.sellmair.quantum.test.common.TestListener
-import io.sellmair.quantum.test.common.TestRunnable
-import io.sellmair.quantum.test.common.assertJoin
+import io.sellmair.quantum.test.common.*
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,11 +26,12 @@ abstract class QuantumTest : BaseQuantumTest() {
         executor = createExecutor()
         return ExecutorQuantum(
             initial = TestState(),
-            stateSubject = StateSubject(looper.asExecutor()),
-            quittedSubject = QuitedSubject(looper.asExecutor()),
+            stateSubject = StateSubject(looper.executor()),
+            quittedSubject = QuitedSubject(looper.executor()),
             executor = executor)
     }
 
+    @After
     override fun cleanup() {
         super.cleanup()
         val executor = executor
@@ -57,8 +56,9 @@ abstract class QuantumTest : BaseQuantumTest() {
      * It will assert that the listener is called exactly twice (initial state + reduced)
      * Also the initial and reduced state are asserted for their integrity.
      */
+    @Repeat(REPETITIONS)
     @Test
-    fun singleReducer() = test {
+    fun singleReducer() {
         quantum.addStateListener(listener)
 
         quantum.setState { copy(revision = 1) }
@@ -76,8 +76,9 @@ abstract class QuantumTest : BaseQuantumTest() {
      * Will enqueue multiple reducers and assert the integrity
      * of the initial and end state.
      */
+    @Repeat(REPETITIONS)
     @Test
-    fun multipleReducers() = test {
+    fun multipleReducers() {
         quantum.addStateListener(listener)
 
         quantum.setState { copy(revision = 1) }
@@ -102,7 +103,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      * The order of published states is asserted.
      */
     @Test
-    open fun multipleReducers_fromRandomThreads() = test(repetitions = 1) {
+    open fun multipleReducers_fromRandomThreads() {
 
         val lock = ReentrantLock()
         val enqueueFinished = lock.newCondition()
@@ -187,7 +188,8 @@ abstract class QuantumTest : BaseQuantumTest() {
      * [Quantum.quit] was called.
      */
     @Test
-    open fun quit_doesNotExecutePendingReducers() = test {
+    @Repeat(REPETITIONS)
+    open fun quit_doesNotExecutePendingReducers() {
 
         /*
         Lock and condition used to halt the first reducer.
@@ -268,7 +270,8 @@ abstract class QuantumTest : BaseQuantumTest() {
      * [Quantum.quitSafely] was called
      */
     @Test
-    fun quitSafely_executesAllPendingReducers() = test {
+    @Repeat(REPETITIONS)
+    fun quitSafely_executesAllPendingReducers() {
         /* SETUP */
         quantum.addStateListener(listener)
 
@@ -298,7 +301,8 @@ abstract class QuantumTest : BaseQuantumTest() {
     }
 
     @Test
-    fun singleAction_receivesLatestState() = test {
+    @Repeat(REPETITIONS)
+    fun singleAction_receivesLatestState() {
         quantum.addStateListener(listener)
         quantum.setState { copy(revision = 1) }
 
@@ -318,7 +322,8 @@ abstract class QuantumTest : BaseQuantumTest() {
      * This test will enforce that two cycles are performed by the quantum.
      */
     @Test
-    open fun singleAction_isCalledOnce() = test {
+    @Repeat(REPETITIONS)
+    open fun singleAction_isCalledOnce() {
 
         /*
         Lock and condition to enable control over precise timing over quantum thread and
@@ -383,7 +388,7 @@ abstract class QuantumTest : BaseQuantumTest() {
      * if no reducer was enqueued yet
      */
     @Test
-    fun singleAction_receivesInitialState() = test {
+    fun singleAction_receivesInitialState() {
         quantum.addStateListener(listener)
 
         val stateListener = TestListener()
@@ -401,7 +406,8 @@ abstract class QuantumTest : BaseQuantumTest() {
      * when there are no pending reducers
      */
     @Test
-    open fun singleAction_receivesLatestState_noPendingReducers() = test {
+    @Repeat(REPETITIONS)
+    open fun singleAction_receivesLatestState_noPendingReducers() {
         /*
         Lock used to handle timing between the quantum thread, listener thread and test thread
          */
@@ -458,7 +464,8 @@ abstract class QuantumTest : BaseQuantumTest() {
      * Ensures that multiple actions will receive the latest state
      */
     @Test
-    fun multipleActions_receiveLatestState() = test {
+    @Repeat(REPETITIONS)
+    fun multipleActions_receiveLatestState() {
         quantum.addStateListener(listener)
         quantum.setState { copy(revision = 1) }
 
@@ -480,7 +487,8 @@ abstract class QuantumTest : BaseQuantumTest() {
 
 
     @Test
-    fun addListener_receivesCurrentState() = test {
+    @Repeat(REPETITIONS)
+    fun addListener_receivesCurrentState() {
         quantum.addStateListener(listener)
         quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
@@ -492,7 +500,8 @@ abstract class QuantumTest : BaseQuantumTest() {
 
 
     @Test
-    fun history_containsAllStates() = test {
+    @Repeat(REPETITIONS)
+    fun history_containsAllStates() {
         quantum.history.enabled = true
 
         repeat(REPETITIONS) {
@@ -514,7 +523,8 @@ abstract class QuantumTest : BaseQuantumTest() {
     }
 
     @Test
-    fun history_isEmptyWhenDisabled() = test {
+    @Repeat(REPETITIONS)
+    fun history_isEmptyWhenDisabled() {
         quantum.history.enabled = false
 
         repeat(REPETITIONS) {
@@ -530,7 +540,8 @@ abstract class QuantumTest : BaseQuantumTest() {
     }
 
     @Test
-    fun history_withLimit() = test {
+    @Repeat(REPETITIONS)
+    fun history_withLimit() {
         val limit = REPETITIONS / 2
         quantum.history.enabled = true
         quantum.history.limit = limit
@@ -557,15 +568,18 @@ abstract class QuantumTest : BaseQuantumTest() {
     }
 
 
+
     @Test
-    fun quit_withoutReducers_releasesJoin() = test {
+    @Repeat(REPETITIONS)
+    fun quit_withoutReducers_releasesJoin() {
         quantum.quitSafely().assertJoin()
         listenerThread.quitSafely()
         listenerThread.assertJoin()
     }
 
     @Test
-    open fun quit_withBlockedReducer_joinWithTimeout_returnsFalse() = test(REPETITIONS) {
+    @Repeat(REPETITIONS)
+    open fun quit_withBlockedReducer_joinWithTimeout_returnsFalse() {
         val lock = ReentrantLock()
 
         lock.withLock {
@@ -582,7 +596,8 @@ abstract class QuantumTest : BaseQuantumTest() {
     }
 
     @Test
-    fun quit_joinWithTimeout_returnsTrue() = test {
+    @Repeat(REPETITIONS)
+    fun quit_joinWithTimeout_returnsTrue() {
         quantum.setState { copy(revision = 1) }
         val joined = quantum.quitSafely().join(100L, TimeUnit.MILLISECONDS)
         assertTrue(joined)
@@ -590,7 +605,8 @@ abstract class QuantumTest : BaseQuantumTest() {
 
 
     @Test
-    fun quittedObservable_isCalledWhenAlreadyQuitted() = test {
+    @Repeat(REPETITIONS)
+    fun quittedObservable_isCalledWhenAlreadyQuitted() {
         val runnable = TestRunnable()
         quantum.quitSafely().assertJoin()
         quantum.addQuittedListener(runnable)
@@ -601,7 +617,8 @@ abstract class QuantumTest : BaseQuantumTest() {
     }
 
     @Test
-    fun quittedObservable_isCalledWhenQuitted() = test {
+    @Repeat(REPETITIONS)
+    fun quittedObservable_isCalledWhenQuitted() {
         val runnable = TestRunnable()
         quantum.addQuittedListener(runnable)
         quantum.setState { copy(revision = 1) }
@@ -659,7 +676,7 @@ class SyncQuantumTest : QuantumTest() {
     }
 
     @Test
-    override fun quit_doesNotExecutePendingReducers() = test {
+    override fun quit_doesNotExecutePendingReducers() {
         quantum.addStateListener(listener)
         quantum.setState { copy(revision = 1) }
         quantum.quit()
@@ -674,7 +691,7 @@ class SyncQuantumTest : QuantumTest() {
     }
 
     @Test
-    override fun singleAction_isCalledOnce() = test {
+    override fun singleAction_isCalledOnce() {
         quantum.setState { copy(revision = 1) }
         quantum.withState(listener)
         quantum.setState { copy(revision = 2) }
@@ -690,6 +707,7 @@ class SyncQuantumTest : QuantumTest() {
      */
     @Test
     override fun quit_withBlockedReducer_joinWithTimeout_returnsFalse() = Unit
+
 }
 
 
