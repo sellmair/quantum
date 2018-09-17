@@ -255,4 +255,8 @@ Quantum.configure {
         threading = Threading.Pool)
 ```
 
+## Behind the scenes
 
+<p align="center">
+  <img width="512" src="https://github.com/sellmair/quantum/blob/illustration/etc/illustration.jpeg?raw=true"><br>
+</p>
