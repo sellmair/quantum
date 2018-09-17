@@ -14,6 +14,7 @@ import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
@@ -101,8 +102,10 @@ abstract class QuantumTest : BaseQuantumTest() {
      * The order of published states is asserted.
      */
     @Test
-    open fun multipleReducers_fromRandomThreads() = test(repetitions = REPETITIONS) {
+    open fun multipleReducers_fromRandomThreads() = test(repetitions = REPETITIONS / 50) {
 
+        val lock = ReentrantLock()
+        val enqueueFinished = lock.newCondition()
 
         /*
         Defines how many threads are created at once
@@ -117,30 +120,30 @@ abstract class QuantumTest : BaseQuantumTest() {
         quantum.addStateListener(listener)
 
 
-        /*
-        Hold a reference to all created threads to assertJoin them later
-         */
-        val threads = mutableListOf<Thread>()
+        val threadsFinished = AtomicInteger(0)
+
 
         /*
         Dispatch all those reducers at once
          */
-        repeat(nThreads) {
-            val thread = thread {
-                repeat(nIncrementsPerThread) {
-                    quantum.setState { copy(revision = revision + 1) }
+        lock.withLock {
+            repeat(nThreads) {
+                thread {
+                    repeat(nIncrementsPerThread) {
+                        quantum.setState { copy(revision = revision + 1) }
+                    }
+
+                    if (threadsFinished.incrementAndGet() == nThreads) {
+                        lock.withLock { enqueueFinished.signalAll() }
+                    }
                 }
+
+
             }
 
-            threads.add(thread)
-        }
-
-        /*
-        Now assertJoin on all of those threads to
-        wait for all reducers to be enqueued
-         */
-        for (thread in threads) {
-            thread.assertJoin(5L, TimeUnit.MINUTES, message = "random thread")
+            if (!enqueueFinished.asAwait(1L, TimeUnit.MINUTES).await()) {
+                fail("Failed to wait for enqueuing reducers")
+            }
         }
 
 
