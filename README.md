@@ -258,5 +258,5 @@ Quantum.configure {
 ## Behind the scenes
 
 <p align="center">
-  <img width="512" src="https://github.com/sellmair/quantum/blob/illustration/etc/illustration.jpeg?raw=true"><br>
+  <img src="https://github.com/sellmair/quantum/blob/illustration/etc/illustration.jpeg?raw=true"><br>
 </p>
