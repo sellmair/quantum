@@ -26,6 +26,8 @@ android:
     - sys-img-armeabi-v7a-android-27
 
 
+before_install:
+  - adb logcat > logcat.log &
 
 # Emulator Management: Create, Start and Wait
 before_script:
@@ -35,7 +37,10 @@ before_script:
    - android-wait-for-emulator
    - adb shell input keyevent 82 &
 
+
 script:
   - android list target
   - ./gradlew connectedAndroidTest --info
 
+after_failure:
+   - cat logcat.log
