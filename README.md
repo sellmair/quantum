@@ -38,7 +38,7 @@ dependencies {
 
 ##### Define a State
 States should always be immutable. I highly recommend using 
-kotlin data classes to ensure immutability. 
+kotlin data classes to make immutability easy 👍 
 
 
 Example:
