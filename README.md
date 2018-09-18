@@ -68,6 +68,7 @@ val quantum = Quantum.create(MyState())
 Reducers are functions that take the current state and create a new state. 
 Reducers will always be called by a internal thread of the quantum. 
 Only one reducer will run at a time!
+Reducers are allowed to return the same (untouched) instance to signal a no-operation.
 
 ###### Example (simple reducer): 
 A simple reducer that that says hallo to a certain user. 
