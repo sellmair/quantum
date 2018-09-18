@@ -8,6 +8,17 @@
 ![Bintray](https://img.shields.io/bintray/v/sellmair/sellmair/quantum.svg)
 
 
+ ## What is it
+ 
+ <p align="center">
+   <img src="https://github.com/sellmair/quantum/blob/develop/etc/illustration.jpeg?raw=true"><br>
+ </p>
+
+Quantum is a general purpose state management library designed for building easy, stable and thread safe
+Android applications. It was inspired by [AirBnb's MvRx](https://github.com/airbnb/MvRx) and tailored
+for building reliable ViewModels. 
+
+
 ## Usage
 
 ##### gradle
@@ -27,7 +38,7 @@ dependencies {
 
 ##### Define a State
 States should always be immutable. I highly recommend using 
-kotlin data classes to ensure immutability. 
+kotlin data classes to make immutability easy 👍 
 
 
 Example:
@@ -57,6 +68,7 @@ val quantum = Quantum.create(MyState())
 Reducers are functions that take the current state and create a new state. 
 Reducers will always be called by a internal thread of the quantum. 
 Only one reducer will run at a time!
+Reducers are allowed to return the same (untouched) instance to signal a no-operation.
 
 ###### Example (simple reducer): 
 A simple reducer that that says hallo to a certain user. 
@@ -71,6 +83,10 @@ fun sayHello() = quantum.setState {
 }
 
 ```
+
+Unlike other "State Owner" concepts, Quantum allows reducers to dispatch async operations.
+This decision was made to give developers the option to handle side-effects 
+inside a more safer environment. 
 
 
 ###### Example (load content): 
@@ -111,6 +127,27 @@ fun onError(error: Error) = setState {
     copy(error = error)
 }
 ```
+
+
+##### Enqueue an Action
+Actions are parts of your code that require the most recent state, but do not intent to change it. 
+Actions will always be called by a internal thread of the quantum and run after
+all reducers are applied.
+
+
+```kotlin
+val quantum = Quantum.create(SimpleState(name = "Balazs"))
+
+quantum.setState {
+    copy(name = "Paul")
+}
+
+quantum.withState {
+    // will print 'Hello Paul'
+    Log.i("Readme", "Hello $name")
+}
+```
+
 
 ##### Listen for changes
 Listeners are invoked by Android's main thread by default. 
@@ -255,8 +292,3 @@ Quantum.configure {
         threading = Threading.Pool)
 ```
 
-## Behind the scenes
-
-<p align="center">
-  <img src="https://github.com/sellmair/quantum/blob/develop/etc/illustration.jpeg?raw=true"><br>
-</p>
