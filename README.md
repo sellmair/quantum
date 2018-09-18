@@ -79,14 +79,14 @@ data class SimpleState(val name: String, val message: String = "" )
 val quantum = Quantum.create(SimpleState("Julian"))
 
 fun sayHello() = quantum.setState {
-    copy(messagge = "Hello $name")
+    copy(message = "Hello $name")
 }
 
 ```
 
 Unlike other "State Owner" concepts, Quantum allows reducers to dispatch async operations.
 This decision was made to give developers the option to handle side-effects 
-inside a more safer environment. 
+inside a safer environment. 
 
 
 ###### Example (load content): 
