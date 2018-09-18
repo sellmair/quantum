@@ -88,25 +88,6 @@ This decision was made to give developers the option to handle side-effects
 inside a more safer environment. 
 
 
-##### Enqueue an Action
-Actions are parts of your code that require the most recent state, but do not intent to change it. 
-Actions will always be called by a internal thread of the quantum and run after
-all reducers are applied.
-
-
-```kotlin
-val quantum = Quantum.create(SimpleState(name = "Balazs"))
-
-quantum.setState {
-    copy(name = "Paul")
-}
-
-quantum.withState {
-    // will print 'Hello Paul'
-    Log.i("Readme", "Hello $name")
-}
-```
-
 ###### Example (load content): 
 Much more complicated reducer problem:  <br>
 We want to 
@@ -145,6 +126,27 @@ fun onError(error: Error) = setState {
     copy(error = error)
 }
 ```
+
+
+##### Enqueue an Action
+Actions are parts of your code that require the most recent state, but do not intent to change it. 
+Actions will always be called by a internal thread of the quantum and run after
+all reducers are applied.
+
+
+```kotlin
+val quantum = Quantum.create(SimpleState(name = "Balazs"))
+
+quantum.setState {
+    copy(name = "Paul")
+}
+
+quantum.withState {
+    // will print 'Hello Paul'
+    Log.i("Readme", "Hello $name")
+}
+```
+
 
 ##### Listen for changes
 Listeners are invoked by Android's main thread by default. 
