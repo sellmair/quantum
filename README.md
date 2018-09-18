@@ -15,8 +15,8 @@
  </p>
 
 Quantum is a general purpose state management library designed for building easy, stable and thread safe
-Android applications. It was inspired by [AirBnb's MvRx](https://github.com/airbnb/MvRx) and was tailored
-for building reliable ViewModels.
+Android applications. It was inspired by [AirBnb's MvRx](https://github.com/airbnb/MvRx) and tailored
+for building reliable ViewModels. 
 
 
 ## Usage
@@ -83,6 +83,29 @@ fun sayHello() = quantum.setState {
 
 ```
 
+Unlike other "State Owner" concepts, Quantum allows reducers to dispatch async operations.
+This decision was made to give developers the option to handle side-effects 
+inside a more safer environment. 
+
+
+##### Enqueue an Action
+Actions are parts of your code that require the most recent state, but do not intent to change it. 
+Actions will always be called by a internal thread of the quantum and run after
+all reducers are applied.
+
+
+```kotlin
+val quantum = Quantum.create(SimpleState(name = "Balazs"))
+
+quantum.setState {
+    copy(name = "Paul")
+}
+
+quantum.withState {
+    // will print 'Hello Paul'
+    Log.i("Readme", "Hello $name")
+}
+```
 
 ###### Example (load content): 
 Much more complicated reducer problem:  <br>
