@@ -8,6 +8,17 @@
 ![Bintray](https://img.shields.io/bintray/v/sellmair/sellmair/quantum.svg)
 
 
+ ## What is it
+ 
+ <p align="center">
+   <img src="https://github.com/sellmair/quantum/blob/develop/etc/illustration.jpeg?raw=true"><br>
+ </p>
+
+Quantum is a general purpose state management library designed for building easy, stable and thread safe
+Android applications. It was inspired by [AirBnb's MvRx](https://github.com/airbnb/MvRx) and was tailored
+for building reliable ViewModels.
+
+
 ## Usage
 
 ##### gradle
@@ -255,8 +266,3 @@ Quantum.configure {
         threading = Threading.Pool)
 ```
 
-## Behind the scenes
-
-<p align="center">
-  <img src="https://github.com/sellmair/quantum/blob/develop/etc/illustration.jpeg?raw=true"><br>
-</p>
