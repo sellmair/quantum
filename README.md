@@ -66,12 +66,12 @@ val quantum = Quantum.create(MyState())
 
 ##### Enqueue a Reducer
 Reducers are functions that take the current state and create a new state. 
-Reducers will always be called by a internal thread of the quantum. 
+Reducers will always be called by a internal thread of the `Quantum`. 
 Only one reducer will run at a time!
 Reducers are allowed to return the same (untouched) instance to signal a no-operation.
 
 ###### Example (simple reducer): 
-A simple reducer that that says hallo to a certain user. 
+A simple reducer that that says hello to a certain user. 
 
 ```kotlin
 data class SimpleState(val name: String, val message: String = "" )
@@ -92,7 +92,7 @@ inside a safer environment.
 ###### Example (load content): 
 Much more complicated reducer problem:  <br>
 We want to 
-- Load content from repository async
+- Load content from repository asyncronously
 - Ensure that only one loading operation is running at a time
 - Publish the content when fetched successfully
 - Publish the error when an error occurred 
@@ -130,8 +130,8 @@ fun onError(error: Error) = setState {
 
 
 ##### Enqueue an Action
-Actions are parts of your code that require the most recent state, but do not intent to change it. 
-Actions will always be called by a internal thread of the quantum and run after
+Actions are parts of your code that require the most recent state, but do not intend to change it. 
+Actions will always be called by a internal thread of the `Quantum` and run after
 all reducers are applied.
 
 
@@ -188,7 +188,7 @@ fun onStart() {
 ##### Debugging
 
 ###### History
-It is possible to record all states created in a Quantum. 
+It is possible to record all states created in a `Quantum`. 
 
 ```kotlin
 val quantum = Quantum.create(MyState()).apply { 
@@ -204,8 +204,8 @@ fun debug(){
 
 
 ##### Quitting
-A Quantum has to be stopped if no longer needed to stop the internal background 
-thread and to release all resources 
+A `Quantum` has to be stopped if it's no longer needed, in order to stop the internal background 
+thread and release all resources.
 
 ```kotlin
 quantum.quit() // will quit as fast as possible
@@ -215,7 +215,7 @@ quantum.quitSafely() // will quit after all currently enqueued reducers / action
 
 ##### ViewModel (Suggestion)
 I suggest having one 'ViewState' for each ViewModel. The ViewModel itself
-might want to implement Quantum itself. 
+might want to implement `Quantum` itself. 
 
 ###### Example:
 
@@ -252,8 +252,8 @@ class LoginViewModel(private val loginService: LoginService):
 
 
 #### Configuration
-It is possible to configure the default configuration of Quantum for your whole application. 
-For example: It is possible to specify the default threading mode, history settings 
+It is possible to configure the defaults of Quantum for your whole application. 
+For example: It is possible to specify the default threading mode, history settings, 
 or even the thread pool that is shared for multiple Quantum instances.
 
 ##### Global configuration
