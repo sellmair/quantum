@@ -2,7 +2,10 @@ package io.sellmair.quantum
 
 import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
-import io.sellmair.quantum.internal.*
+import io.sellmair.quantum.internal.ExecutorQuantum
+import io.sellmair.quantum.internal.SingleThreadExecutor
+import io.sellmair.quantum.internal.asAwait
+import io.sellmair.quantum.internal.createDefaultPool
 import io.sellmair.quantum.test.common.*
 import org.junit.After
 import org.junit.Assert.*
@@ -26,8 +29,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         executor = createExecutor()
         return ExecutorQuantum(
             initial = TestState(),
-            stateSubject = StateSubject(looper.executor()),
-            quittedSubject = QuitedSubject(looper.executor()),
+            callbackExecutor = looper.executor(),
             executor = executor)
     }
 
@@ -566,7 +568,6 @@ abstract class QuantumTest : BaseQuantumTest() {
                 assertEquals(first.revision + 1, second.revision)
             }
     }
-
 
 
     @Test

@@ -1,6 +1,9 @@
 package io.sellmair.quantum
 
-import io.sellmair.quantum.internal.*
+import io.sellmair.quantum.internal.ExecutorQuantum
+import io.sellmair.quantum.internal.QuitableExecutor
+import io.sellmair.quantum.internal.SingleThreadExecutor
+import io.sellmair.quantum.internal.config
 import java.util.concurrent.Executor
 
 /*
@@ -123,10 +126,14 @@ fun <T> Quantum.Companion.create(
     initial: T,
     threading: Threading = config { this.threading.default.mode },
     callbackExecutor: Executor = config { this.threading.default.callbackExecutor }): Quantum<T> {
-    val stateSubject = StateSubject<T>(callbackExecutor)
-    val quittedSubject = QuitedSubject(callbackExecutor)
+
     val managedExecutor = managedExecutor(threading)
-    val quantum = ExecutorQuantum(initial, stateSubject, quittedSubject, managedExecutor.executor)
+
+    val quantum = ExecutorQuantum(
+        initial = initial,
+        callbackExecutor = callbackExecutor,
+        executor = managedExecutor.executor)
+
     quantum.addQuittedListener { managedExecutor.quitable?.quitSafely() }
     return quantum
 }

@@ -13,10 +13,12 @@ INTERNAL API
 
 internal class ExecutorQuantum<T>(
     initial: T,
-    private val stateSubject: StateSubject<T>,
-    private val quittedSubject: QuitedSubject,
+    override val callbackExecutor: Executor,
+    private val stateSubject: StateSubject<T> = StateSubject(callbackExecutor),
+    private val quittedSubject: QuitedSubject = QuitedSubject(callbackExecutor),
     private val executor: Executor) :
     Quantum<T>,
+    InternalQuantum<T>,
     StateObservable<T> by stateSubject,
     QuitedObservable by quittedSubject {
 
