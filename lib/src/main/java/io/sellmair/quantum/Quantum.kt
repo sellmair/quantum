@@ -41,9 +41,11 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      * The reducer, however, is allowed to return the same unmodified instance
      * to signal a NO-OP to the state.
      *
+     * @return [CycleFuture] object that indicates when the reducer was applied
+     *
      *
      */
-    fun setState(reducer: Reducer<T>)
+    fun setState(reducer: Reducer<T>): CycleFuture
 
 
     /**
@@ -60,8 +62,10 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      *
      * The action will run at the end of the next cycle.
      * All pending reducers will be invoked and evaluated before.
+     *
+     * @return [CycleFuture] object that indicates when the action was performed
      */
-    fun withState(action: Action<T>)
+    fun withState(action: Action<T>): CycleFuture
 
 
     /**

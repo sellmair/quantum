@@ -27,18 +27,20 @@ internal class ExecutorQuantum<T>(
     ################################################################################################
     */
 
-    override fun setState(reducer: Reducer<T>): Unit = members {
-        if (quitted || quittedSafely) return@members
+    override fun setState(reducer: Reducer<T>): CycleFuture = members {
+        if (quitted || quittedSafely) return@members cycleFuture
         pendingReducers.add(reducer)
         verbose("Reducer enqueued. ${pendingReducers.size} reducers pending for next cycle")
         notifyWork()
+        cycleFuture
     }
 
-    override fun withState(action: Action<T>): Unit = members {
-        if (quitted || quittedSafely) return@members
+    override fun withState(action: Action<T>): CycleFuture = members {
+        if (quitted || quittedSafely) return@members cycleFuture
         pendingActions.add(action)
         verbose("Action enqueued. ${pendingActions.size} actions pending for next cycle")
         notifyWork()
+        cycleFuture
     }
 
     override fun quit(): Joinable = members {
@@ -78,7 +80,10 @@ internal class ExecutorQuantum<T>(
     ################################################################################################
     */
 
-    data class Cycle<T>(val reducers: List<Reducer<T>>, val actions: List<Action<T>>)
+    data class Cycle<T>(
+        val future: CompletableCycleFuture,
+        val reducers: List<Reducer<T>>,
+        val actions: List<Action<T>>)
 
 
     /*
@@ -130,6 +135,9 @@ internal class ExecutorQuantum<T>(
          * Cannot be true while [isExecuting] is also true
          */
         var isStarting = false
+
+
+        var cycleFuture = CompletableCycleFuture(config.callbackExecutor)
 
     }
 
@@ -278,12 +286,23 @@ internal class ExecutorQuantum<T>(
             info("publish new state: $internalState")
             stateSubject.publish(internalState)
         }
+
+        cycle.future.completed()
     }
 
     private fun pollCycle() = members {
-        Cycle(reducers = pendingReducers.poll(), actions = pendingActions.poll()).apply {
+        Cycle(
+            future = pollFuture(),
+            reducers = pendingReducers.poll(),
+            actions = pendingActions.poll()).apply {
             info("cycle with ${reducers.size} reducers, ${actions.size} actions")
         }
+    }
+
+    private fun pollFuture(): CompletableCycleFuture = members {
+        val future = cycleFuture
+        cycleFuture = CompletableCycleFuture(config.callbackExecutor)
+        return future
     }
 
     private fun applyReducers(reducers: List<Reducer<T>>) {
@@ -373,6 +392,7 @@ internal class ExecutorQuantum<T>(
             anymore (and therefore fully quitted).
              */
             isAlive = false
+            cycleFuture.rejected()
             quittedSubject.quitted()
         }
 

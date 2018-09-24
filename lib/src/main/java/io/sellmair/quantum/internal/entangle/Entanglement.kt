@@ -12,45 +12,43 @@ internal class Entanglement<Outer, Inner>(
     private val projection: Projection<Outer, Inner>) : Quantum<Inner> {
 
     override fun setState(reducer: Reducer<Inner>) = members {
-        if (quitted || quittedSafely || !isAlive) return@members
+        if (quitted || quittedSafely || !isAlive) return@members CycleFuture.rejected()
         enqueuedReducers++
         debug("[Entanglement]: setState $enqueuedReducers enqueuedReducers")
 
-        parent.setState {
-            val shouldRun = members {
-                require(isAlive)
-                !quitted
-            }
+        parent
+            .setState {
+                val shouldRun = members {
+                    require(isAlive)
+                    !quitted
+                }
 
-            if (shouldRun) {
-                val inner = projection(this)
-                connection(this, reducer(inner))
-            } else {
-                this
+                when {
+                    shouldRun -> connection(this, reducer(projection(this)))
+                    else -> this
+                }
             }
-        }
-
-        parent.withState { onReducerFinished() }
+            .after(::onReducerFinished)
     }
 
     override fun withState(action: Action<Inner>) = members {
-        if (quitted || quittedSafely || !isAlive) return@members
+        if (quitted || quittedSafely || !isAlive) return@members CycleFuture.rejected()
 
         enqueuedActions++
         debug("[Entanglement]: withState $enqueuedActions enqueuedActions")
 
-        parent.withState {
-            val shouldRun = members {
-                require(isAlive)
-                !quitted
-            }
+        parent
+            .withState {
+                val shouldRun = members {
+                    require(isAlive)
+                    !quitted
+                }
 
-            if (shouldRun) {
-                action(projection(this))
+                if (shouldRun) {
+                    action(projection(this))
+                }
             }
-
-            onActionFinished()
-        }
+            .after(::onActionFinished)
     }
 
     override fun quit(): Joinable = members {
@@ -136,6 +134,7 @@ PRIVATE IMPLEMENTATION: Keep track of enqueued reducers / actions
         debug("[Entanglement]: onReducerFinished")
         check(enqueuedReducers >= 1)
         enqueuedReducers--
+        debug("onReducerFinished: $enqueuedReducers enqueued reducers")
         considerIdle()
 
     }

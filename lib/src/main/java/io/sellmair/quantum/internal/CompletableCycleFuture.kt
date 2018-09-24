@@ -19,15 +19,15 @@ internal class CompletableCycleFuture(
     ################################################################################################
     */
 
-    override fun after(action: () -> Unit) {
+    override fun after(action: () -> Unit) = apply {
         addAfterListener(action)
     }
 
-    override fun completed(action: () -> Unit) {
+    override fun completed(action: () -> Unit) = apply {
         addCompletionListener(action)
     }
 
-    override fun rejected(action: () -> Unit) {
+    override fun rejected(action: () -> Unit) = apply {
         addRejectionListener(action)
     }
 
@@ -163,3 +163,4 @@ internal class CompletableCycleFuture(
         return await()
     }
 }
+
