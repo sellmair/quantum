@@ -1,48 +1,45 @@
 package io.sellmair.quantum.internal.entangle
 
 import io.sellmair.quantum.*
-import io.sellmair.quantum.internal.InternalQuantum
-import io.sellmair.quantum.internal.Locked
-import io.sellmair.quantum.internal.asAwait
-import io.sellmair.quantum.internal.poll
+import io.sellmair.quantum.internal.*
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 internal class Entanglement<Outer, Inner>(
-    private val parent: InternalQuantum<Outer>,
-    private val callbackExecutor: Executor = parent.callbackExecutor,
+    private val parent: Quantum<Outer>,
+    private val callbackExecutor: Executor = parent.config.callbackExecutor,
     private val connection: Connection<Outer, Inner>,
     private val projection: Projection<Outer, Inner>) : Quantum<Inner> {
 
     override fun setState(reducer: Reducer<Inner>) = members {
         if (quitted || quittedSafely || !isAlive) return@members
-
         enqueuedReducers++
+        debug("[Entanglement]: setState $enqueuedReducers enqueuedReducers")
 
-        parentSetState@ parent.setState {
+        parent.setState {
             val shouldRun = members {
                 require(isAlive)
                 !quitted
             }
 
-            val newState = if (shouldRun) {
+            if (shouldRun) {
                 val inner = projection(this)
                 connection(this, reducer(inner))
-            } else this
-
-            onReducerFinished()
-            newState
+            } else {
+                this
+            }
         }
+
+        parent.withState { onReducerFinished() }
     }
 
     override fun withState(action: Action<Inner>) = members {
         if (quitted || quittedSafely || !isAlive) return@members
 
         enqueuedActions++
+        debug("[Entanglement]: withState $enqueuedActions enqueuedActions")
 
-        parentWithState@ parent.withState {
+        parent.withState {
             val shouldRun = members {
                 require(isAlive)
                 !quitted
@@ -58,11 +55,13 @@ internal class Entanglement<Outer, Inner>(
 
     override fun quit(): Joinable = members {
         quitted = true
+        considerIdle()
         createJoinable()
     }
 
     override fun quitSafely(): Joinable = members {
         quittedSafely = true
+        considerIdle()
         createJoinable()
     }
 
@@ -97,6 +96,10 @@ internal class Entanglement<Outer, Inner>(
 
     override val history: History<Inner> = ProjectionHistory(parent.history, projection)
 
+    override val config = object : InstanceConfig {
+        override val callbackExecutor: Executor = this@Entanglement.callbackExecutor
+        override val executor: Executor = this@Entanglement.parent.config.executor
+    }
 
     /*
     ################################################################################################
@@ -130,6 +133,7 @@ PRIVATE IMPLEMENTATION: Keep track of enqueued reducers / actions
 */
 
     private fun onReducerFinished() = members {
+        debug("[Entanglement]: onReducerFinished")
         check(enqueuedReducers >= 1)
         enqueuedReducers--
         considerIdle()
@@ -137,6 +141,7 @@ PRIVATE IMPLEMENTATION: Keep track of enqueued reducers / actions
     }
 
     private fun onActionFinished() = members {
+        debug("[Entanglement]: onActionFinished")
         check(enqueuedActions >= 1)
         enqueuedActions--
         considerIdle()
@@ -144,6 +149,7 @@ PRIVATE IMPLEMENTATION: Keep track of enqueued reducers / actions
     }
 
     private fun Members.considerIdle() {
+        debug("[Entanglement]: considerIdle")
         require(members.isHeldByCurrentThread)
         check(enqueuedReducers >= 0)
         check(enqueuedActions >= 0)
@@ -153,6 +159,7 @@ PRIVATE IMPLEMENTATION: Keep track of enqueued reducers / actions
     }
 
     private fun Members.onIdle() {
+        debug("[Entanglement]: onIdle")
         check(members.isHeldByCurrentThread)
 
         if (quitted || quittedSafely) {
@@ -174,6 +181,7 @@ PRIVATE IMPLEMENTATION: Quitting
     }
 
     private fun Members.onChildQuitted() {
+        debug("[Entanglement]: onChildQuitted")
         require(members.isHeldByCurrentThread)
         if (!isAlive) return
 
@@ -182,6 +190,7 @@ PRIVATE IMPLEMENTATION: Quitting
     }
 
     private fun Members.onQuitted() {
+        debug("[Entanglement]: onQuitted")
         require(members.isHeldByCurrentThread)
         check(isAlive)
 
@@ -190,10 +199,13 @@ PRIVATE IMPLEMENTATION: Quitting
     }
 
     private fun notifyQuittedListeners() = callbackExecutor.execute {
+        debug("[Entanglement]: notifyQuittedListeners")
         val listeners = members { quittedListeners.poll() }
         for (listener in listeners) {
             listener()
         }
+
+        debug("[Entanglement]: notifyQuittedListeners [DONE]")
     }
 
 
@@ -205,26 +217,24 @@ PRIVATE IMPLEMENTATION: Quitting
 
     private fun createJoinable() = object : Joinable {
 
-
         override fun join() {
             performJoin(null, null)
         }
-
 
         override fun join(timeout: Long, unit: TimeUnit): Boolean {
             return performJoin(timeout, unit)
         }
 
-
         fun performJoin(timeout: Long?, unit: TimeUnit?): Boolean {
-            val lock = ReentrantLock()
-            val condition = lock.newCondition()
+            val condition = members.newCondition()
 
-            fun onQuitted() = lock.withLock {
+            fun onQuitted() = members {
                 condition.signalAll()
             }
 
-            lock.withLock {
+            members {
+                if (!isAlive) return true
+
                 addQuittedListener(::onQuitted)
                 val await = if (timeout != null && unit != null) {
                     condition.asAwait(timeout, unit)
@@ -242,5 +252,5 @@ PRIVATE IMPLEMENTATION: Quitting
         parent.addQuittedListener(this::onParentQuitted)
     }
 
-
 }
+

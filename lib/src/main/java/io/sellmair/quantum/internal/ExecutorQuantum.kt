@@ -13,12 +13,11 @@ INTERNAL API
 
 internal class ExecutorQuantum<T>(
     initial: T,
-    override val callbackExecutor: Executor,
+    callbackExecutor: Executor,
     private val stateSubject: StateSubject<T> = StateSubject(callbackExecutor),
     private val quittedSubject: QuitedSubject = QuitedSubject(callbackExecutor),
     private val executor: Executor) :
     Quantum<T>,
-    InternalQuantum<T>,
     StateObservable<T> by stateSubject,
     QuitedObservable by quittedSubject {
 
@@ -68,6 +67,11 @@ internal class ExecutorQuantum<T>(
         }
     }
 
+    override val config = object : InstanceConfig {
+        override val callbackExecutor: Executor = callbackExecutor
+        override val executor: Executor = this@ExecutorQuantum.executor
+    }
+
     /*
     ################################################################################################
     PRIVATE: Definitions
@@ -93,6 +97,7 @@ internal class ExecutorQuantum<T>(
          * All actions that are currently pending for the next cycle
          */
         val pendingActions = mutableListOf<Action<T>>()
+
 
         /**
          * Indicates whether or not [quit] was called.

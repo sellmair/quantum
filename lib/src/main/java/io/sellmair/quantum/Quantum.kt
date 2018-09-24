@@ -1,9 +1,6 @@
 package io.sellmair.quantum
 
-import io.sellmair.quantum.internal.ExecutorQuantum
-import io.sellmair.quantum.internal.QuitableExecutor
-import io.sellmair.quantum.internal.SingleThreadExecutor
-import io.sellmair.quantum.internal.config
+import io.sellmair.quantum.internal.*
 import java.util.concurrent.Executor
 
 /*
@@ -24,6 +21,8 @@ PUBLIC API
 ################################################################################################
 */
 
+// TODO: setState should return CycleFuture?
+// TODO: Or should there be a different function for this?
 interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
 
 
@@ -90,6 +89,13 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      */
     val history: History<T>
 
+
+    /**
+     * Configuration of the given instance.
+     * This parameters will never change and can be used
+     * to configure other instances.
+     */
+    val config: InstanceConfig
 
     /**
      * Quits the current Quantum.

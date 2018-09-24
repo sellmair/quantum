@@ -1,19 +1,15 @@
 package io.sellmair.quantum
 
-import io.sellmair.quantum.internal.InternalQuantum
 import io.sellmair.quantum.internal.entangle.Connection
 import io.sellmair.quantum.internal.entangle.Entanglement
 import io.sellmair.quantum.internal.entangle.Projection
 import java.util.concurrent.Executor
 
 fun <T> Quantum<T>.entangle(): QuantumEntangleProjectionBuilder<T> {
-    val internalQuantum = this as? InternalQuantum<T> ?: throw IllegalArgumentException("" +
-        "Custom implementation of Quantum is not supported for .entangle")
-
-    return QuantumEntangleProjectionBuilder(internalQuantum)
+    return QuantumEntangleProjectionBuilder(this)
 }
 
-class QuantumEntangleProjectionBuilder<T>(private val quantum: InternalQuantum<T>) {
+class QuantumEntangleProjectionBuilder<T>(private val quantum: Quantum<T>) {
     fun <P> project(projection: (T) -> P) =
         QuantumEntangleConnectionBuilder(quantum, ProjectionImpl(projection))
 
@@ -24,7 +20,7 @@ class QuantumEntangleProjectionBuilder<T>(private val quantum: InternalQuantum<T
 }
 
 class QuantumEntangleConnectionBuilder<T, P> internal constructor(
-    private val quantum: InternalQuantum<T>,
+    private val quantum: Quantum<T>,
     private val projection: Projection<T, P>) {
 
     fun connect(connector: (outer: T, inner: P) -> T) =
@@ -37,11 +33,11 @@ class QuantumEntangleConnectionBuilder<T, P> internal constructor(
 }
 
 class QuantumEntangleConfigurationBuilder<T, P> internal constructor(
-    private val quantum: InternalQuantum<T>,
+    private val quantum: Quantum<T>,
     private val projection: Projection<T, P>,
     private val connection: Connection<T, P>) {
 
-    private var callbackExecutor = quantum.callbackExecutor
+    private var callbackExecutor = quantum.config.callbackExecutor
 
     fun setCallbackExecutor(executor: Executor) = apply {
         callbackExecutor = executor
