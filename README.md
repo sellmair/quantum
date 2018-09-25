@@ -9,14 +9,14 @@
 
 
  ## What is it
+
+ Quantum is a general purpose state management library designed for building easy, stable and thread safe
+ Android applications. It was inspired by [AirBnb's MvRx](https://github.com/airbnb/MvRx) and tailored
+ for building reliable ViewModels.
  
  <p align="center">
    <img src="https://github.com/sellmair/quantum/blob/develop/etc/illustration.jpeg?raw=true"><br>
  </p>
-
-Quantum is a general purpose state management library designed for building easy, stable and thread safe
-Android applications. It was inspired by [AirBnb's MvRx](https://github.com/airbnb/MvRx) and tailored
-for building reliable ViewModels. 
 
 
 ## Usage
