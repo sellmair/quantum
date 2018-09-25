@@ -25,13 +25,13 @@ for building reliable ViewModels.
 ```groovy
 
 dependencies { 
-    implementation "io.sellmair:quantum:1.0.0-beta.0"
+    implementation "io.sellmair:quantum:1.0.0-beta.1"
     
     // optional rx extensions
-    implementation "io.sellmair:quantum-rx:1.0.0-beta.0"
+    implementation "io.sellmair:quantum-rx:1.0.0-beta.1"
     
     // optional LiveData extensions
-    implementation "io.sellmair:quantum-livedata:1.0.0-beta.0"
+    implementation "io.sellmair:quantum-livedata:1.0.0-beta.1"
 }
 ```
 
@@ -184,6 +184,32 @@ fun onStart() {
 }
 ```
 
+
+##### Nested Quantum / Map
+
+It is possible to map a Quantum to create a 'Child-Quantum' that which can run reducers and actions
+as usual. The state of this child will be in sync with the parent Quantum.
+
+###### Example: Child
+
+```kotlin
+data class ChildState(val name: String, val age: Int)
+
+data class ParentState(val name: String, val age: Int, val children: List<ChildState>)
+
+// Get the quantum instance of the parent state
+val parentQuantum: Quantum<ParentState> =  /* ... */
+
+// Create the child state
+val childQuantum = parentQuantum
+    .map { parentState ->  parentState.children }
+    .connect { parentState, children -> parentState.copy(children = children) }
+
+// Increase the age of all children
+childQuantum.setState { children ->
+     children.map { child -> child.copy(age=child.age++) }
+}
+```
 
 ##### Debugging
 
