@@ -21,6 +21,8 @@ PUBLIC API
 ################################################################################################
 */
 
+// TODO: setState should return CycleFuture?
+// TODO: Or should there be a different function for this?
 interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
 
 
@@ -39,9 +41,11 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      * The reducer, however, is allowed to return the same unmodified instance
      * to signal a NO-OP to the state.
      *
+     * @return [CycleFuture] object that indicates when the reducer was applied
+     *
      *
      */
-    fun setState(reducer: Reducer<T>)
+    fun setState(reducer: Reducer<T>): CycleFuture
 
 
     /**
@@ -58,8 +62,10 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      *
      * The action will run at the end of the next cycle.
      * All pending reducers will be invoked and evaluated before.
+     *
+     * @return [CycleFuture] object that indicates when the action was performed
      */
-    fun withState(action: Action<T>)
+    fun withState(action: Action<T>): CycleFuture
 
 
     /**
@@ -87,6 +93,13 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      */
     val history: History<T>
 
+
+    /**
+     * Configuration of the given instance.
+     * This parameters will never change and can be used
+     * to configure other instances.
+     */
+    val config: InstanceConfig
 
     /**
      * Quits the current Quantum.
@@ -123,10 +136,14 @@ fun <T> Quantum.Companion.create(
     initial: T,
     threading: Threading = config { this.threading.default.mode },
     callbackExecutor: Executor = config { this.threading.default.callbackExecutor }): Quantum<T> {
-    val stateSubject = StateSubject<T>(callbackExecutor)
-    val quittedSubject = QuitedSubject(callbackExecutor)
+
     val managedExecutor = managedExecutor(threading)
-    val quantum = ExecutorQuantum(initial, stateSubject, quittedSubject, managedExecutor.executor)
+
+    val quantum = ExecutorQuantum(
+        initial = initial,
+        callbackExecutor = callbackExecutor,
+        executor = managedExecutor.executor)
+
     quantum.addQuittedListener { managedExecutor.quitable?.quitSafely() }
     return quantum
 }

@@ -13,6 +13,7 @@ internal operator fun <T> AtomicReference<T>.getValue(thisRef: Any?, property: K
     return this.get()
 }
 
-internal operator fun <T> AtomicReference<T>.setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+internal operator fun <T> AtomicReference<T>.setValue(
+    thisRef: Any?, property: KProperty<*>, value: T) {
     this.set(value)
 }

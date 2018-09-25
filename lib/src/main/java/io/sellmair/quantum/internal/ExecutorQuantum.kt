@@ -13,8 +13,9 @@ INTERNAL API
 
 internal class ExecutorQuantum<T>(
     initial: T,
-    private val stateSubject: StateSubject<T>,
-    private val quittedSubject: QuitedSubject,
+    callbackExecutor: Executor,
+    private val stateSubject: StateSubject<T> = StateSubject(callbackExecutor),
+    private val quittedSubject: QuitedSubject = QuitedSubject(callbackExecutor),
     private val executor: Executor) :
     Quantum<T>,
     StateObservable<T> by stateSubject,
@@ -26,18 +27,20 @@ internal class ExecutorQuantum<T>(
     ################################################################################################
     */
 
-    override fun setState(reducer: Reducer<T>): Unit = members {
-        if (quitted || quittedSafely) return@members
+    override fun setState(reducer: Reducer<T>): CycleFuture = members {
+        if (quitted || quittedSafely) return@members CycleFuture.rejected()
         pendingReducers.add(reducer)
         verbose("Reducer enqueued. ${pendingReducers.size} reducers pending for next cycle")
         notifyWork()
+        cycleFuture
     }
 
-    override fun withState(action: Action<T>): Unit = members {
-        if (quitted || quittedSafely) return@members
+    override fun withState(action: Action<T>): CycleFuture = members {
+        if (quitted || quittedSafely) return@members CycleFuture.rejected()
         pendingActions.add(action)
         verbose("Action enqueued. ${pendingActions.size} actions pending for next cycle")
         notifyWork()
+        cycleFuture
     }
 
     override fun quit(): Joinable = members {
@@ -66,13 +69,21 @@ internal class ExecutorQuantum<T>(
         }
     }
 
+    override val config = object : InstanceConfig {
+        override val callbackExecutor: Executor = callbackExecutor
+        override val executor: Executor = this@ExecutorQuantum.executor
+    }
+
     /*
     ################################################################################################
     PRIVATE: Definitions
     ################################################################################################
     */
 
-    data class Cycle<T>(val reducers: List<Reducer<T>>, val actions: List<Action<T>>)
+    data class Cycle<T>(
+        val future: CompletableCycleFuture,
+        val reducers: List<Reducer<T>>,
+        val actions: List<Action<T>>)
 
 
     /*
@@ -91,6 +102,7 @@ internal class ExecutorQuantum<T>(
          * All actions that are currently pending for the next cycle
          */
         val pendingActions = mutableListOf<Action<T>>()
+
 
         /**
          * Indicates whether or not [quit] was called.
@@ -123,6 +135,14 @@ internal class ExecutorQuantum<T>(
          * Cannot be true while [isExecuting] is also true
          */
         var isStarting = false
+
+
+        /**
+         * The future associated with all currently pending reducers and actions.
+         * @see pendingReducers
+         * @see pendingActions
+         */
+        var cycleFuture = CompletableCycleFuture(config.callbackExecutor)
 
     }
 
@@ -271,12 +291,23 @@ internal class ExecutorQuantum<T>(
             info("publish new state: $internalState")
             stateSubject.publish(internalState)
         }
+
+        cycle.future.completed()
     }
 
     private fun pollCycle() = members {
-        Cycle(reducers = pendingReducers.poll(), actions = pendingActions.poll()).apply {
+        Cycle(
+            future = pollFuture(),
+            reducers = pendingReducers.poll(),
+            actions = pendingActions.poll()).apply {
             info("cycle with ${reducers.size} reducers, ${actions.size} actions")
         }
+    }
+
+    private fun pollFuture(): CompletableCycleFuture = members {
+        val future = cycleFuture
+        cycleFuture = CompletableCycleFuture(config.callbackExecutor)
+        return future
     }
 
     private fun applyReducers(reducers: List<Reducer<T>>) {
@@ -366,6 +397,17 @@ internal class ExecutorQuantum<T>(
             anymore (and therefore fully quitted).
              */
             isAlive = false
+
+            /*
+            All currently pending reducers and actions are now officially rejected.
+            All reducers and actions that try to enqueue will still receive
+            this future which will immediately call the rejection listeners
+             */
+            cycleFuture.rejected()
+
+            /*
+            Notify all quitted listeners that this quantum is now officially dead
+             */
             quittedSubject.quitted()
         }
 

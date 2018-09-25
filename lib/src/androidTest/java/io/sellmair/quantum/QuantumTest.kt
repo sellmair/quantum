@@ -2,10 +2,14 @@ package io.sellmair.quantum
 
 import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
-import io.sellmair.quantum.internal.*
+import io.sellmair.quantum.internal.ExecutorQuantum
+import io.sellmair.quantum.internal.SingleThreadExecutor
+import io.sellmair.quantum.internal.asAwait
+import io.sellmair.quantum.internal.createDefaultPool
 import io.sellmair.quantum.test.common.*
 import org.junit.After
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.Executor
@@ -20,14 +24,13 @@ import kotlin.concurrent.withLock
 @RunWith(AndroidJUnit4::class)
 abstract class QuantumTest : BaseQuantumTest() {
 
-    private lateinit var executor: Executor
+    protected open lateinit var executor: Executor
 
-    final override fun createQuantum(looper: Looper): Quantum<TestState> {
+    override fun createQuantum(looper: Looper): Quantum<TestState> {
         executor = createExecutor()
         return ExecutorQuantum(
             initial = TestState(),
-            stateSubject = StateSubject(looper.executor()),
-            quittedSubject = QuitedSubject(looper.executor()),
+            callbackExecutor = looper.executor(),
             executor = executor)
     }
 
@@ -116,7 +119,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         /*
         Defines how many increments one thread should perform
          */
-        val nIncrementsPerThread = 1000
+        val nIncrementsPerThread = 1200
 
         quantum.addStateListener(listener)
 
@@ -128,9 +131,9 @@ abstract class QuantumTest : BaseQuantumTest() {
         Dispatch all those reducers at once
          */
         lock.withLock {
-            repeat(nThreads) {
+            repeat(nThreads) { _ ->
                 thread {
-                    repeat(nIncrementsPerThread) {
+                    repeat(nIncrementsPerThread) { _ ->
                         quantum.setState { copy(revision = revision + 1) }
                     }
 
@@ -142,7 +145,7 @@ abstract class QuantumTest : BaseQuantumTest() {
 
             }
 
-            if (!enqueueFinished.asAwait(1L, TimeUnit.MINUTES).await()) {
+            if (!enqueueFinished.asAwait(5L, TimeUnit.MINUTES).await()) {
                 fail("Failed to wait for enqueuing reducers. Finished: ${threadsFinished.get()}")
             }
         }
@@ -568,7 +571,6 @@ abstract class QuantumTest : BaseQuantumTest() {
     }
 
 
-
     @Test
     @Repeat(REPETITIONS)
     fun quit_withoutReducers_releasesJoin() {
@@ -721,21 +723,62 @@ class CustomSingleThreadExecutorQuantumTest : QuantumTest() {
 @RunWith(AndroidJUnit4::class)
 class DefaultThreadPoolExecutorQuantumTest : QuantumTest() {
 
-    private lateinit var executor: ExecutorService
+    private lateinit var executorService: ExecutorService
 
     override fun createExecutor(): Executor {
-        return executor
+        return executorService
     }
 
     override fun setup() {
-        executor = Threading.createDefaultPool()
+        executorService = Threading.createDefaultPool()
         super.setup()
     }
 
     override fun cleanup() {
         super.cleanup()
-        executor.shutdownNow()
-        executor.awaitTermination(1L, TimeUnit.SECONDS)
+        executorService.shutdownNow()
+        executorService.awaitTermination(1L, TimeUnit.SECONDS)
     }
 
+}
+
+
+@RunWith(AndroidJUnit4::class)
+class EntangledQuantumTest : QuantumTest() {
+
+    data class ParentState(
+        val parentRevision: Int = 0,
+        val child: TestState = TestState())
+
+
+    private lateinit var parentQuantum: Quantum<ParentState>
+
+    override fun createExecutor(): Executor {
+        return Executors.newCachedThreadPool()
+    }
+
+    override fun createQuantum(looper: Looper): Quantum<TestState> {
+        executor = createExecutor()
+
+        parentQuantum = ExecutorQuantum(
+            initial = ParentState(),
+            callbackExecutor = looper.executor(),
+            executor = executor)
+
+        return parentQuantum
+            .map(ParentState::child)
+            .connect { parent, child -> parent.copy(child = child) }
+
+    }
+
+    @Before
+    override fun setup() {
+        super.setup()
+        Quantum.configure { logging.level = LogLevel.DEBUG }
+    }
+
+    @After
+    fun cleanupParent() {
+        parentQuantum.quitSafely().assertJoin()
+    }
 }

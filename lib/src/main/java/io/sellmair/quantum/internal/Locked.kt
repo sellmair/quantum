@@ -11,9 +11,9 @@ INTERNAL API
 */
 
 internal class Locked<T : Any>(private val value: T,
-                      private val lock: ReentrantLock = ReentrantLock()) : Lock by lock {
+                               private val lock: ReentrantLock = ReentrantLock()) : Lock by lock {
 
-    operator fun <R> invoke(operation: T.() -> R): R = withLock {
+    inline operator fun <R> invoke(operation: T.() -> R): R = withLock {
         operation(value)
     }
 
