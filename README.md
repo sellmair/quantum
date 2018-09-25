@@ -187,7 +187,7 @@ fun onStart() {
 
 ##### Nested Quantum / Map
 
-It is possible to map a Quantum to create a 'Child-Quantum' that which can run reducers and actions
+It is possible to map a Quantum to create a 'Child-Quantum' which can enqueue reducers and actions
 as usual. The state of this child will be in sync with the parent Quantum.
 
 ###### Example: Child
