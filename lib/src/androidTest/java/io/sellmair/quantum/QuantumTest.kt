@@ -723,21 +723,21 @@ class CustomSingleThreadExecutorQuantumTest : QuantumTest() {
 @RunWith(AndroidJUnit4::class)
 class DefaultThreadPoolExecutorQuantumTest : QuantumTest() {
 
-    lateinit var executorSerivce: ExecutorService
+    private lateinit var executorService: ExecutorService
 
     override fun createExecutor(): Executor {
-        return executor
+        return executorService
     }
 
     override fun setup() {
-        executor = Threading.createDefaultPool()
+        executorService = Threading.createDefaultPool()
         super.setup()
     }
 
     override fun cleanup() {
         super.cleanup()
-        executorSerivce.shutdownNow()
-        executorSerivce.awaitTermination(1L, TimeUnit.SECONDS)
+        executorService.shutdownNow()
+        executorService.awaitTermination(1L, TimeUnit.SECONDS)
     }
 
 }
@@ -765,10 +765,9 @@ class EntangledQuantumTest : QuantumTest() {
             callbackExecutor = looper.executor(),
             executor = executor)
 
-        return parentQuantum.entangle()
-            .project(ParentState::child)
-            .connect { outer, inner -> outer.copy(child = inner) }
-            .build()
+        return parentQuantum
+            .map(ParentState::child)
+            .connect { parent, child -> parent.copy(child = child) }
 
     }
 

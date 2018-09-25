@@ -28,7 +28,7 @@ internal class ExecutorQuantum<T>(
     */
 
     override fun setState(reducer: Reducer<T>): CycleFuture = members {
-        if (quitted || quittedSafely) return@members cycleFuture
+        if (quitted || quittedSafely) return@members CycleFuture.rejected()
         pendingReducers.add(reducer)
         verbose("Reducer enqueued. ${pendingReducers.size} reducers pending for next cycle")
         notifyWork()
@@ -36,7 +36,7 @@ internal class ExecutorQuantum<T>(
     }
 
     override fun withState(action: Action<T>): CycleFuture = members {
-        if (quitted || quittedSafely) return@members cycleFuture
+        if (quitted || quittedSafely) return@members CycleFuture.rejected()
         pendingActions.add(action)
         verbose("Action enqueued. ${pendingActions.size} actions pending for next cycle")
         notifyWork()
@@ -137,6 +137,11 @@ internal class ExecutorQuantum<T>(
         var isStarting = false
 
 
+        /**
+         * The future associated with all currently pending reducers and actions.
+         * @see pendingReducers
+         * @see pendingActions
+         */
         var cycleFuture = CompletableCycleFuture(config.callbackExecutor)
 
     }
@@ -392,7 +397,17 @@ internal class ExecutorQuantum<T>(
             anymore (and therefore fully quitted).
              */
             isAlive = false
+
+            /*
+            All currently pending reducers and actions are now officially rejected.
+            All reducers and actions that try to enqueue will still receive
+            this future which will immediately call the rejection listeners
+             */
             cycleFuture.rejected()
+
+            /*
+            Notify all quitted listeners that this quantum is now officially dead
+             */
             quittedSubject.quitted()
         }
 
