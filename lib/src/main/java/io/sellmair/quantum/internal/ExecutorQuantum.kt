@@ -27,7 +27,7 @@ internal class ExecutorQuantum<T>(
     ################################################################################################
     */
 
-    override fun setState(reducer: Reducer<T>): CycleFuture = members {
+    override fun setStateFuture(reducer: ItReducer<T>): CycleFuture = members {
         if (quitted || quittedSafely) return@members CycleFuture.rejected()
         pendingReducers.add(reducer)
         verbose("Reducer enqueued. ${pendingReducers.size} reducers pending for next cycle")
@@ -35,7 +35,7 @@ internal class ExecutorQuantum<T>(
         cycleFuture
     }
 
-    override fun withState(action: Action<T>): CycleFuture = members {
+    override fun withStateFuture(action: ItAction<T>): CycleFuture = members {
         if (quitted || quittedSafely) return@members CycleFuture.rejected()
         pendingActions.add(action)
         verbose("Action enqueued. ${pendingActions.size} actions pending for next cycle")

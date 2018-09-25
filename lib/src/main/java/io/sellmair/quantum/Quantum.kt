@@ -21,8 +21,6 @@ PUBLIC API
 ################################################################################################
 */
 
-// TODO: setState should return CycleFuture?
-// TODO: Or should there be a different function for this?
 interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
 
 
@@ -41,17 +39,23 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      * The reducer, however, is allowed to return the same unmodified instance
      * to signal a NO-OP to the state.
      *
-     * @return [CycleFuture] object that indicates when the reducer was applied
-     *
-     *
      */
-    fun setState(reducer: Reducer<T>): CycleFuture
+    fun setState(reducer: Reducer<T>) {
+        setStateFuture(reducer)
+    }
 
 
     /**
-     * Same as [setState]
+     * Same as [setState], but wont use a receiver function
      */
     fun setStateIt(reducer: ItReducer<T>) = setState(reducer)
+
+
+    /**
+     * Same as [setStateIt] but additionally returns a future
+     * @return [CycleFuture] object that indicates when the reducer was applied
+     */
+    fun setStateFuture(reducer: ItReducer<T>): CycleFuture
 
 
     /**
@@ -62,16 +66,23 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      *
      * The action will run at the end of the next cycle.
      * All pending reducers will be invoked and evaluated before.
-     *
-     * @return [CycleFuture] object that indicates when the action was performed
      */
-    fun withState(action: Action<T>): CycleFuture
+    fun withState(action: Action<T>) {
+        withStateFuture(action)
+    }
 
 
     /**
-     * Same as [withState]
+     * Same as [withState] but wont use receiver function
      */
     fun withStateIt(action: ItAction<T>) = withState(action)
+
+
+    /**
+     * Same as [withStateIt] but returns future
+     * @return [CycleFuture] object that indicates when the action was performed
+     */
+    fun withStateFuture(action: ItAction<T>): CycleFuture
 
 
     /**

@@ -9,7 +9,7 @@ internal class Entanglement<Parent, Child>(
     private val connection: Connection<Parent, Child>,
     private val projection: Projection<Parent, Child>) : Quantum<Child> {
 
-    override fun setState(reducer: Reducer<Child>) = members {
+    override fun setStateFuture(reducer: ItReducer<Child>) = members {
         /*
         Immediately reject the reducer if quitted or not alive anymore.
          */
@@ -28,7 +28,7 @@ internal class Entanglement<Parent, Child>(
         Run the actual reducer
          */
         parent
-            .setState {
+            .setStateFuture { state ->
 
                 /*
                 Determine whether or not the reducer is allowed to run
@@ -49,8 +49,8 @@ internal class Entanglement<Parent, Child>(
                Return noop if the reducer should not run.
                  */
                 when {
-                    shouldRun -> connection(this, reducer(projection(this)))
-                    else -> this
+                    shouldRun -> connection(state, reducer(projection(state)))
+                    else -> state
                 }
             }
 
@@ -61,7 +61,7 @@ internal class Entanglement<Parent, Child>(
             .after(::onReducerFinished)
     }
 
-    override fun withState(action: Action<Child>) = members {
+    override fun withStateFuture(action: ItAction<Child>) = members {
         /*
         Reject the action immediately if the Quantum was quitted, quittedSafely
         or is not alive anymore.
@@ -81,7 +81,7 @@ internal class Entanglement<Parent, Child>(
         Perform the actual action
          */
         parent
-            .withState {
+            .withStateFuture { state ->
                 /*
                 Determine whether or not the action is supposed to run
                  */
@@ -98,7 +98,7 @@ internal class Entanglement<Parent, Child>(
                 }
 
                 if (shouldRun) {
-                    action(projection(this))
+                    action(projection(state))
                 }
             }
             .after(::onActionFinished)
