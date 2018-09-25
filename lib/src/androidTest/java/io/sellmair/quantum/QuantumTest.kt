@@ -119,7 +119,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         /*
         Defines how many increments one thread should perform
          */
-        val nIncrementsPerThread = 800
+        val nIncrementsPerThread = 1200
 
         quantum.addStateListener(listener)
 
@@ -145,7 +145,7 @@ abstract class QuantumTest : BaseQuantumTest() {
 
             }
 
-            if (!enqueueFinished.asAwait(1L, TimeUnit.MINUTES).await()) {
+            if (!enqueueFinished.asAwait(5L, TimeUnit.MINUTES).await()) {
                 fail("Failed to wait for enqueuing reducers. Finished: ${threadsFinished.get()}")
             }
         }
