@@ -119,7 +119,7 @@ abstract class QuantumTest : BaseQuantumTest() {
         /*
         Defines how many increments one thread should perform
          */
-        val nIncrementsPerThread = 1000
+        val nIncrementsPerThread = 800
 
         quantum.addStateListener(listener)
 
@@ -131,9 +131,9 @@ abstract class QuantumTest : BaseQuantumTest() {
         Dispatch all those reducers at once
          */
         lock.withLock {
-            repeat(nThreads) {
+            repeat(nThreads) { _ ->
                 thread {
-                    repeat(nIncrementsPerThread) {
+                    repeat(nIncrementsPerThread) { _ ->
                         quantum.setState { copy(revision = revision + 1) }
                     }
 
