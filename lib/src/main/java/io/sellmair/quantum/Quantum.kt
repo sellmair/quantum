@@ -137,7 +137,7 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
  *
  * @param threading The threading option for this quantum.
  * - Default value can be configured using [Quantum.Companion.configure].
- * - Default configuration is [Threading.Pool]
+ * - Default configuration is [Threading.Multi.Pool]
  *
  * @param callbackExecutor The executor used to notify [StateListener]s and [QuittedListener]'s
  * - Default value can be configured using [Quantum.Companion.configure]
@@ -145,8 +145,8 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
  */
 fun <T> Quantum.Companion.create(
     initial: T,
-    threading: Threading = config { this.threading.default.mode },
-    callbackExecutor: Executor = config { this.threading.default.callbackExecutor }): Quantum<T> {
+    threading: Threading.Multi = config { this.threading.default.multi.mode },
+    callbackExecutor: Executor = config { this.threading.default.multi.callbackExecutor }): Quantum<T> {
 
     val managedExecutor = managedExecutor(threading)
 
@@ -161,14 +161,29 @@ fun <T> Quantum.Companion.create(
 
 
 /**
+ * @param initial The initial state of the quantum.
+ *
+ * @param threading The threading option for this quantum.
+ * - Default value can be configured using [Quantum.Companion.configure].
+ * - Default configuration is [Threading.Single.Post]
+ */
+fun <T> Quantum.Companion.create(
+    initial: T,
+    threading: Threading.Single = config { this.threading.default.single.mode }): Quantum<T> {
+    return SingleThreadQuantum(
+        initial = initial,
+        threading = threading)
+}
+
+/**
  * Create a [ManagedExecutor] from a given threading option
  */
-private fun managedExecutor(threading: Threading): ManagedExecutor {
+private fun managedExecutor(threading: Threading.Multi): ManagedExecutor {
     return when (threading) {
-        is Threading.Sync -> ManagedExecutor.nonQuitable(Executor(Runnable::run))
-        is Threading.Pool -> ManagedExecutor.nonQuitable(config { this.threading.pool })
-        is Threading.Thread -> ManagedExecutor.quitable(SingleThreadExecutor())
-        is Threading.Custom -> ManagedExecutor.nonQuitable(threading.executor)
+        is Threading.Multi.Sync -> ManagedExecutor.nonQuitable(Executor(Runnable::run))
+        is Threading.Multi.Pool -> ManagedExecutor.nonQuitable(config { this.threading.pool })
+        is Threading.Multi.Thread -> ManagedExecutor.quitable(SingleThreadExecutor())
+        is Threading.Multi.Custom -> ManagedExecutor.nonQuitable(threading.executor)
     }
 }
 

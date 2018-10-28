@@ -9,9 +9,9 @@ import io.sellmair.quantum.Threading
 INTERNAL API
 ################################################################################################
 */
-internal operator fun Threading.SingleThread.invoke(block: () -> Unit) {
+internal operator fun Threading.Single.invoke(block: () -> Unit) {
     return when (this) {
-        is Threading.SingleThread.Throw -> {
+        is Threading.Single.Throw -> {
             if (Looper.myLooper() == this.looper) {
                 block()
             } else {
@@ -21,7 +21,7 @@ internal operator fun Threading.SingleThread.invoke(block: () -> Unit) {
             }
         }
 
-        is Threading.SingleThread.Post -> {
+        is Threading.Single.Post -> {
             if (Looper.myLooper() == this.looper) {
                 block()
             } else {

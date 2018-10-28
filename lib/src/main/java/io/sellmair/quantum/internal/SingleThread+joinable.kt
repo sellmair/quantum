@@ -14,10 +14,10 @@ INTERNAL API
 ################################################################################################
 */
 
-internal fun Threading.SingleThread.joinable(block: () -> Unit): Joinable {
+internal fun Threading.Single.joinable(block: () -> Unit): Joinable {
     return when (this) {
-        is Threading.SingleThread.Throw -> joinable(block)
-        is Threading.SingleThread.Post -> joinable(block)
+        is Threading.Single.Throw -> joinable(block)
+        is Threading.Single.Post -> joinable(block)
     }
 }
 
@@ -27,13 +27,13 @@ PRIVATE IMPLEMENTATION
 ################################################################################################
 */
 
-private fun Threading.SingleThread.Throw.joinable(block: () -> Unit): Joinable {
+private fun Threading.Single.Throw.joinable(block: () -> Unit): Joinable {
     this { block() }
     return Joinable.noop()
 }
 
 
-private fun Threading.SingleThread.Post.joinable(block: () -> Unit): Joinable {
+private fun Threading.Single.Post.joinable(block: () -> Unit): Joinable {
     if (Looper.myLooper() == this.looper) {
         block()
         return Joinable.noop()

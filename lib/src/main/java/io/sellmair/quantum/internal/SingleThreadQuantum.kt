@@ -12,7 +12,7 @@ INTERNAL API
 
 internal class SingleThreadQuantum<T>(
     initial: T,
-    private val threading: Threading.SingleThread,
+    private val threading: Threading.Single,
 
     private val stateSubject: StateSubject<T> = StateSubject(
         executor = Executor { it.run() },
