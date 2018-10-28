@@ -1,6 +1,7 @@
 package io.sellmair.quantum.internal
 
 import java.util.*
+import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -10,11 +11,13 @@ INTERNAL API
 ################################################################################################
 */
 
-internal class SynchronizedHistory<T>(private val initial: T) : MutableHistory<T> {
+internal class LockedHistory<T>(
+    private val initial: T,
     /**
      * Lock used to synchronize access to the internal list of states [states]
      */
-    private val lock = ReentrantLock()
+    private val lock: Lock = ReentrantLock()) : MutableHistory<T> {
+
 
     /**
      * ALl states that are currently stored in this history.

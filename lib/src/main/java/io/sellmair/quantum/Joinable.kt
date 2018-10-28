@@ -21,4 +21,18 @@ interface Joinable {
      * @return true if the join was successful, false if the timeout was reached
      */
     fun join(timeout: Long, unit: TimeUnit): Boolean
+
+    companion object
 }
+
+/*
+################################################################################################
+INTERNAL API: Factories
+################################################################################################
+*/
+
+internal fun Joinable.Companion.noop(): Joinable = object : Joinable {
+    override fun join() = Unit
+    override fun join(timeout: Long, unit: TimeUnit): Boolean = true
+}
+

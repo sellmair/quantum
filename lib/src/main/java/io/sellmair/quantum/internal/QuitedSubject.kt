@@ -3,6 +3,7 @@ package io.sellmair.quantum.internal
 import io.sellmair.quantum.QuitedObservable
 import io.sellmair.quantum.QuittedListener
 import java.util.concurrent.Executor
+import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -13,9 +14,9 @@ INTERNAL API
 */
 
 internal class QuitedSubject(
-    private val executor: Executor) : QuitedObservable {
+    private val executor: Executor,
+    private val lock: Lock = ReentrantLock()) : QuitedObservable {
 
-    private val lock = ReentrantLock()
 
     private var quitted = false
 
