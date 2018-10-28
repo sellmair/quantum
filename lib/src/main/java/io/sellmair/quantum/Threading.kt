@@ -1,5 +1,7 @@
 package io.sellmair.quantum
 
+import android.os.Handler
+import android.os.Looper
 import java.util.concurrent.Executor
 
 /*
@@ -39,6 +41,15 @@ sealed class Threading {
      * Be aware: Executors are not allowed to drop tasks!
      */
     data class Custom(val executor: Executor) : Threading()
+
+
+    sealed class SingleThread : Threading() {
+        internal abstract val looper: Looper
+
+        class Throw(override val looper: Looper) : SingleThread()
+        class Post(override val looper: Looper,
+                   internal val handler: Handler = Handler(looper)) : SingleThread()
+    }
 
     companion object
 }

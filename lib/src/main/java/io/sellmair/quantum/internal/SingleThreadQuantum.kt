@@ -10,17 +10,17 @@ INTERNAL API
 ################################################################################################
 */
 
-internal class SingleLooperQuantum<T>(
+internal class SingleThreadQuantum<T>(
     initial: T,
-    private val looper: Looper,
+    private val threading: Threading.SingleThread,
 
     private val stateSubject: StateSubject<T> = StateSubject(
         executor = Executor { it.run() },
-        lock = SingleThreadLock(looper.thread)),
+        lock = SingleThreadLock(threading.looper.thread)),
 
     private val quittedSubject: QuitedSubject = QuitedSubject(
         executor = Executor { it.run() },
-        lock = SingleThreadLock(looper.thread))) :
+        lock = SingleThreadLock(threading.looper.thread))) :
     Quantum<T>,
     StateObservable<T> by stateSubject,
     QuitedObservable by quittedSubject {
@@ -33,32 +33,51 @@ internal class SingleLooperQuantum<T>(
     */
 
     override fun setStateFuture(reducer: ItReducer<T>): CycleFuture {
-        requireCorrectThread()
-        if (quitted) return CycleFuture.rejected(this.config.callbackExecutor)
-        applyReducer(reducer)
-        return CycleFuture.completed(this.config.callbackExecutor)
+        val future = CompletableCycleFuture(Executor(Runnable::run))
+
+        threading {
+            if (quitted) {
+                future.rejected()
+                return@threading
+            }
+
+            applyReducer(reducer)
+            future.completed()
+        }
+
+
+        return future
     }
 
     override fun withStateFuture(action: ItAction<T>): CycleFuture {
-        requireCorrectThread()
-        if (quitted) return CycleFuture.rejected(this.config.callbackExecutor)
-        applyAction(action)
-        return CycleFuture.completed(this.config.callbackExecutor)
+        val future = CompletableCycleFuture(Executor(Runnable::run))
+
+        threading {
+            if (quitted) {
+                future.rejected()
+                return@threading
+            }
+
+            applyAction(action)
+            future.completed()
+        }
+
+        return future
     }
 
     override val history: MutableHistory<T> = LockedHistory<T>(
         initial = initial,
-        lock = SingleThreadLock(looper.thread))
+        lock = SingleThreadLock(threading.looper.thread))
 
     override val config: InstanceConfig = object : InstanceConfig {
-        override val callbackExecutor: Executor = looper.asExecutor()
-        override val executor: Executor = looper.asExecutor()
+        override val callbackExecutor: Executor = threading.looper.asExecutor()
+        override val executor: Executor = threading.looper.asExecutor()
     }
 
     override fun quit(): Joinable {
-        requireCorrectThread()
-        performQuit()
-        return Joinable.noop()
+        return threading.joinable {
+            this.performQuit()
+        }
     }
 
     /**
@@ -67,23 +86,19 @@ internal class SingleLooperQuantum<T>(
      */
     override fun quitSafely() = quit()
 
-    override fun addQuittedListener(listener: QuittedListener) {
-        requireCorrectThread()
+    override fun addQuittedListener(listener: QuittedListener) = threading {
         quittedSubject.addQuittedListener(listener)
     }
 
-    override fun removeQuittedListener(listener: QuittedListener) {
-        requireCorrectThread()
+    override fun removeQuittedListener(listener: QuittedListener) = threading {
         quittedSubject.removeQuittedListener(listener)
     }
 
-    override fun addStateListener(listener: StateListener<T>) {
-        requireCorrectThread()
+    override fun addStateListener(listener: StateListener<T>) = threading {
         stateSubject.addStateListener(listener)
     }
 
-    override fun removeStateListener(listener: StateListener<T>) {
-        requireCorrectThread()
+    override fun removeStateListener(listener: StateListener<T>) = threading {
         stateSubject.removeStateListener(listener)
     }
 
@@ -140,6 +155,8 @@ internal class SingleLooperQuantum<T>(
 
 
     private fun performQuit() {
+        requireCorrectThread()
+
         check(!quitted)
 
         this.quitted = true
@@ -154,8 +171,8 @@ internal class SingleLooperQuantum<T>(
     */
 
     private fun requireCorrectThread() {
-        if (Looper.myLooper() != looper) {
-            throw ForbiddenThreadException("Expected $looper. Found: ${Looper.myLooper()}")
+        if (Looper.myLooper() != threading.looper) {
+            throw ForbiddenThreadException("Expected $threading.looper. Found: ${Looper.myLooper()}")
         }
     }
 

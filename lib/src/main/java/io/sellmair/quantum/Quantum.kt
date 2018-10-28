@@ -161,7 +161,7 @@ fun <T> Quantum.Companion.create(
 
 
 /**
- * Create a [ManagedExecutor] from a given threading optionn
+ * Create a [ManagedExecutor] from a given threading option
  */
 private fun managedExecutor(threading: Threading): ManagedExecutor {
     return when (threading) {
