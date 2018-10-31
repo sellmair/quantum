@@ -16,13 +16,13 @@ internal class LockedHistory<T>(
     /**
      * Lock used to synchronize access to the internal list of states [states]
      */
-    private val lock: Lock = ReentrantLock()) : MutableHistory<T> {
-
+    private val lock: Lock = ReentrantLock(),
 
     /**
      * ALl states that are currently stored in this history.
      */
-    private val states = LinkedList<T>()
+    private val states: LinkedList<T> = LinkedList<T>()) : MutableHistory<T> {
+
 
     override var enabled: Boolean = false
         set(value) = lock.withLock {

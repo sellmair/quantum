@@ -10,8 +10,13 @@ INTERNAL API
 ################################################################################################
 */
 
-internal fun Looper.asExecutor(): Executor {
-    return LooperExecutor(this)
+internal fun Looper.asExecutor(handoff: Handoff = Handoff.POST): Executor {
+    return LooperExecutor(this, handoff)
+}
+
+internal enum class Handoff {
+    POST,
+    DIRECT
 }
 
 /*
@@ -20,9 +25,18 @@ PRIVATE IMPLEMENTATION
 ################################################################################################
 */
 
-private class LooperExecutor(looper: Looper) : Executor {
+private class LooperExecutor(
+    private val looper: Looper,
+    private val handoff: Handoff) : Executor {
     private val handler = Handler(looper)
     override fun execute(command: Runnable) {
-        handler.post(command)
+        when {
+            handoff == Handoff.DIRECT && Looper.myLooper() == looper -> command.run()
+            else -> handler.post(command)
+
+        }
     }
 }
+
+
+

@@ -47,7 +47,6 @@ private fun Threading.Single.Post.joinable(block: () -> Unit): Joinable {
     val joinable = object : Joinable {
         override fun join() = lock.withLock {
             if (executed) return
-
             condition.asAwait().await()
             Unit
         }

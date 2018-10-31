@@ -3,9 +3,13 @@ package io.sellmair.quantum.test.common
 import android.os.HandlerThread
 import android.os.Looper
 import io.sellmair.quantum.Quantum
+import io.sellmair.quantum.Quitable
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
+import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.TimeUnit
 
 abstract class BaseQuantumTest {
 
@@ -27,6 +31,9 @@ abstract class BaseQuantumTest {
      */
     protected lateinit var quantum: Quantum<TestState>
 
+
+    protected lateinit var executor: Executor
+
     /**
      * Can be used to receive events and test against.
      */
@@ -42,6 +49,7 @@ abstract class BaseQuantumTest {
     open fun setup() {
         listener = TestListener()
         listenerThread = HandlerThread("Listener-Thread").also(Thread::start)
+        executor = createExecutor()
         quantum = createQuantum(listenerThread.looper)
     }
 
@@ -50,6 +58,18 @@ abstract class BaseQuantumTest {
         quantum.quit().assertJoin(message = "cleanup, quantum")
         listenerThread.quit()
         listenerThread.assertJoin(message = "cleanup, listenerThread")
+
+        val executor = executor
+        when (executor) {
+            is ExecutorService -> {
+                executor.shutdownNow()
+                executor.awaitTermination(1L, TimeUnit.SECONDS)
+            }
+
+            is Quitable -> {
+                executor.quit().assertJoin()
+            }
+        }
     }
 
     @Rule
@@ -57,4 +77,5 @@ abstract class BaseQuantumTest {
     val repeat = RepeatRule()
 
     abstract fun createQuantum(looper: Looper): Quantum<TestState>
+    abstract fun createExecutor(): Executor
 }

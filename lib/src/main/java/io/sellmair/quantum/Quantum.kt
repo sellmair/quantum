@@ -138,21 +138,25 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
  * @param threading The threading option for this quantum.
  * - Default value can be configured using [Quantum.Companion.configure].
  * - Default configuration is [Threading.Multi.Pool]
- *
- * @param callbackExecutor The executor used to notify [StateListener]s and [QuittedListener]'s
- * - Default value can be configured using [Quantum.Companion.configure]
- * - Default configuration is Android's main thread
  */
 fun <T> Quantum.Companion.create(
     initial: T,
-    threading: Threading.Multi = config { this.threading.default.multi.mode },
-    callbackExecutor: Executor = config { this.threading.default.multi.callbackExecutor }): Quantum<T> {
+    threading: Threading = config { this.threading.default }): Quantum<T> {
+    return when (threading) {
+        is Threading.Multi -> create(initial, threading)
+        is Threading.Single -> create(initial, threading)
+    }
 
+}
+
+private fun <T> Quantum.Companion.create(
+    initial: T,
+    threading: Threading.Multi): Quantum<T> {
     val managedExecutor = managedExecutor(threading)
 
     val quantum = ExecutorQuantum(
         initial = initial,
-        callbackExecutor = callbackExecutor,
+        callbackExecutor = threading.callbackExecutor,
         executor = managedExecutor.executor)
 
     quantum.addQuittedListener { managedExecutor.quitable?.quitSafely() }
@@ -167,13 +171,14 @@ fun <T> Quantum.Companion.create(
  * - Default value can be configured using [Quantum.Companion.configure].
  * - Default configuration is [Threading.Single.Post]
  */
-fun <T> Quantum.Companion.create(
+private fun <T> Quantum.Companion.create(
     initial: T,
-    threading: Threading.Single = config { this.threading.default.single.mode }): Quantum<T> {
+    threading: Threading.Single): Quantum<T> {
     return SingleThreadQuantum(
         initial = initial,
         threading = threading)
 }
+
 
 /**
  * Create a [ManagedExecutor] from a given threading option
