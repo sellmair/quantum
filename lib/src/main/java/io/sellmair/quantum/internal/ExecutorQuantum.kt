@@ -62,7 +62,7 @@ internal class ExecutorQuantum<T>(
         createJoinable()
     }
 
-    override val history = SynchronizedHistory(initial).also { history ->
+    override val history = LockedHistory(initial).also { history ->
         config {
             history.enabled = this.history.default.enabled
             history.limit = this.history.default.limit

@@ -137,22 +137,26 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
  *
  * @param threading The threading option for this quantum.
  * - Default value can be configured using [Quantum.Companion.configure].
- * - Default configuration is [Threading.Pool]
- *
- * @param callbackExecutor The executor used to notify [StateListener]s and [QuittedListener]'s
- * - Default value can be configured using [Quantum.Companion.configure]
- * - Default configuration is Android's main thread
+ * - Default configuration is [Threading.Multi.Pool]
  */
 fun <T> Quantum.Companion.create(
     initial: T,
-    threading: Threading = config { this.threading.default.mode },
-    callbackExecutor: Executor = config { this.threading.default.callbackExecutor }): Quantum<T> {
+    threading: Threading = config { this.threading.default }): Quantum<T> {
+    return when (threading) {
+        is Threading.Multi -> create(initial, threading)
+        is Threading.Single -> create(initial, threading)
+    }
 
+}
+
+private fun <T> Quantum.Companion.create(
+    initial: T,
+    threading: Threading.Multi): Quantum<T> {
     val managedExecutor = managedExecutor(threading)
 
     val quantum = ExecutorQuantum(
         initial = initial,
-        callbackExecutor = callbackExecutor,
+        callbackExecutor = threading.callbackExecutor,
         executor = managedExecutor.executor)
 
     quantum.addQuittedListener { managedExecutor.quitable?.quitSafely() }
@@ -161,14 +165,30 @@ fun <T> Quantum.Companion.create(
 
 
 /**
- * Create a [ManagedExecutor] from a given threading optionn
+ * @param initial The initial state of the quantum.
+ *
+ * @param threading The threading option for this quantum.
+ * - Default value can be configured using [Quantum.Companion.configure].
+ * - Default configuration is [Threading.Single.Post]
  */
-private fun managedExecutor(threading: Threading): ManagedExecutor {
+private fun <T> Quantum.Companion.create(
+    initial: T,
+    threading: Threading.Single): Quantum<T> {
+    return SingleThreadQuantum(
+        initial = initial,
+        threading = threading)
+}
+
+
+/**
+ * Create a [ManagedExecutor] from a given threading option
+ */
+private fun managedExecutor(threading: Threading.Multi): ManagedExecutor {
     return when (threading) {
-        is Threading.Sync -> ManagedExecutor.nonQuitable(Executor(Runnable::run))
-        is Threading.Pool -> ManagedExecutor.nonQuitable(config { this.threading.pool })
-        is Threading.Thread -> ManagedExecutor.quitable(SingleThreadExecutor())
-        is Threading.Custom -> ManagedExecutor.nonQuitable(threading.executor)
+        is Threading.Multi.Sync -> ManagedExecutor.nonQuitable(Executor(Runnable::run))
+        is Threading.Multi.Pool -> ManagedExecutor.nonQuitable(config { this.threading.pool })
+        is Threading.Multi.Thread -> ManagedExecutor.quitable(SingleThreadExecutor())
+        is Threading.Multi.Custom -> ManagedExecutor.nonQuitable(threading.executor)
     }
 }
 

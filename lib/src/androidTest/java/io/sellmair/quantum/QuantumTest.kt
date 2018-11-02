@@ -1,11 +1,9 @@
 package io.sellmair.quantum
 
+import android.os.HandlerThread
 import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
-import io.sellmair.quantum.internal.ExecutorQuantum
-import io.sellmair.quantum.internal.SingleThreadExecutor
-import io.sellmair.quantum.internal.asAwait
-import io.sellmair.quantum.internal.createDefaultPool
+import io.sellmair.quantum.internal.*
 import io.sellmair.quantum.test.common.*
 import org.junit.After
 import org.junit.Assert.*
@@ -24,34 +22,13 @@ import kotlin.concurrent.withLock
 @RunWith(AndroidJUnit4::class)
 abstract class QuantumTest : BaseQuantumTest() {
 
-    protected open lateinit var executor: Executor
 
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        executor = createExecutor()
         return ExecutorQuantum(
             initial = TestState(),
             callbackExecutor = looper.executor(),
             executor = executor)
     }
-
-    @After
-    override fun cleanup() {
-        super.cleanup()
-        val executor = executor
-        when (executor) {
-            is ExecutorService -> {
-                executor.shutdownNow()
-                executor.awaitTermination(1L, TimeUnit.SECONDS)
-            }
-            is Quitable -> {
-                executor.quit().assertJoin()
-            }
-        }
-
-    }
-
-
-    abstract fun createExecutor(): Executor
 
 
     /**
@@ -608,7 +585,7 @@ abstract class QuantumTest : BaseQuantumTest() {
 
     @Test
     @Repeat(REPETITIONS)
-    fun quittedObservable_isCalledWhenAlreadyQuitted() {
+    open fun quittedObservable_isCalledWhenAlreadyQuitted() {
         val runnable = TestRunnable()
         quantum.quitSafely().assertJoin()
         quantum.addQuittedListener(runnable)
@@ -649,11 +626,6 @@ class SingleThreadExecutorQuantumTest : QuantumTest() {
 class FixedThreadPoolQuantumTest : QuantumTest() {
     override fun createExecutor(): Executor {
         return Executors.newFixedThreadPool(12)
-    }
-
-    @Test
-    override fun multipleReducers_fromRandomThreads() {
-        super.multipleReducers_fromRandomThreads()
     }
 }
 
@@ -781,4 +753,43 @@ class EntangledQuantumTest : QuantumTest() {
     fun cleanupParent() {
         parentQuantum.quitSafely().assertJoin()
     }
+}
+
+
+@RunWith(AndroidJUnit4::class)
+class SingleThreadQuantumTest : QuantumTest() {
+
+    private var handlerThread: HandlerThread? = null
+
+    override fun createExecutor(): Executor {
+        handlerThread?.quit()
+        val handlerThread = HandlerThread("")
+        this.handlerThread = handlerThread
+        this.handlerThread?.start()
+        return handlerThread.looper.asExecutor()
+    }
+
+    override fun createQuantum(looper: Looper): Quantum<TestState> {
+        val handlerThread = this.handlerThread ?: throw IllegalStateException()
+
+        return SingleThreadQuantum(
+            initial = TestState(),
+            threading = Threading.Single.Post(handlerThread.looper))
+    }
+
+
+    @Test
+    @Repeat(REPETITIONS)
+    override fun quittedObservable_isCalledWhenAlreadyQuitted() {
+        val runnable = TestRunnable()
+        quantum.quitSafely().assertJoin()
+        quantum.addQuittedListener(runnable)
+        listenerThread.quitSafely()
+        listenerThread.assertJoin()
+        handlerThread?.quitSafely()
+        handlerThread?.assertJoin()
+
+        assertEquals(1, runnable.executions)
+    }
+
 }

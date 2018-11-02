@@ -3,6 +3,7 @@ package io.sellmair.quantum.rx
 import android.os.Looper
 import android.support.test.runner.AndroidJUnit4
 import io.sellmair.quantum.Quantum
+import io.sellmair.quantum.Threading
 import io.sellmair.quantum.create
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.Repeat
@@ -11,11 +12,20 @@ import io.sellmair.quantum.test.common.executor
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.Executor
 
 @RunWith(AndroidJUnit4::class)
 class RxTest : BaseQuantumTest() {
+
+    override fun createExecutor(): Executor {
+        return Executor(Runnable::run)
+    }
+
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return Quantum.create(TestState(), callbackExecutor = looper.executor())
+        return Quantum.create(
+            initial = TestState(),
+            threading = Threading.Multi.Pool(
+                callbackExecutor = looper.executor()))
     }
 
     @Repeat(REPETITIONS)

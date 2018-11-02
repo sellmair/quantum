@@ -3,6 +3,7 @@ package io.sellmair.quantum.internal
 import io.sellmair.quantum.StateListener
 import io.sellmair.quantum.StateObservable
 import java.util.concurrent.Executor
+import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -16,7 +17,12 @@ internal class StateSubject<T>(
     /**
      * Executor used to notify all listeners
      */
-    private val executor: Executor) : StateObservable<T> {
+    private val executor: Executor,
+
+    /**
+     * Lock used to synchronize [listeners] & [state] with.
+     */
+    private val lock: Lock = ReentrantLock()) : StateObservable<T> {
 
 
     /**
@@ -31,12 +37,6 @@ internal class StateSubject<T>(
      * Synchronized via [lock]
      */
     private var state: T? = null
-
-
-    /**
-     * Lock used to synchronize [listeners] & [state] with.
-     */
-    private var lock = ReentrantLock()
 
 
     /**

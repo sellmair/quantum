@@ -3,7 +3,6 @@ package io.sellmair.quantum
 import android.os.Looper
 import io.sellmair.quantum.internal.asExecutor
 import io.sellmair.quantum.internal.createDefaultPool
-import java.util.concurrent.Executor
 
 /*
 ################################################################################################
@@ -22,12 +21,9 @@ class QuantumConfig {
     val threading = ThreadingConfig()
 
     class ThreadingConfig {
-        class Default {
-            var mode: Threading = Threading.Pool
-            var callbackExecutor: Executor = Looper.getMainLooper().asExecutor()
-        }
+        val default: Threading = Threading.Multi.Pool(
+            callbackExecutor = Looper.getMainLooper().asExecutor())
 
-        val default = Default()
         var pool = Threading.createDefaultPool()
     }
 
