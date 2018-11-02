@@ -3,6 +3,7 @@ package io.sellmair.quantum.livedata
 import android.os.Handler
 import android.os.Looper
 import io.sellmair.quantum.Quantum
+import io.sellmair.quantum.Threading
 import io.sellmair.quantum.create
 import io.sellmair.quantum.test.common.BaseQuantumTest
 import io.sellmair.quantum.test.common.Repeat
@@ -11,12 +12,21 @@ import io.sellmair.quantum.test.common.executor
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.util.concurrent.Executor
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 class LiveDataTest : BaseQuantumTest() {
+
+    override fun createExecutor(): Executor {
+        return Executor(Runnable::run)
+    }
+
     override fun createQuantum(looper: Looper): Quantum<TestState> {
-        return Quantum.create(TestState(), callbackExecutor = looper.executor())
+        return Quantum.create(
+            initial = TestState(),
+            threading = Threading.Multi.Pool(
+                callbackExecutor = looper.executor()))
     }
 
 
