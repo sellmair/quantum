@@ -21,7 +21,10 @@ PUBLIC API
 ################################################################################################
 */
 
-interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
+interface Quantum<T> :
+    Owner<T>,
+    Chronological<T>,
+    Quitable, QuitedObservable, StateObservable<T> {
 
 
     /**
@@ -40,7 +43,7 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      * to signal a NO-OP to the state.
      *
      */
-    fun setState(reducer: Reducer<T>) {
+    override fun setState(reducer: Reducer<T>) {
         setStateFuture(reducer)
     }
 
@@ -48,7 +51,7 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
     /**
      * Same as [setState], but wont use a receiver function
      */
-    fun setStateIt(reducer: ItReducer<T>) = setState(reducer)
+    override fun setStateIt(reducer: ItReducer<T>) = setState(reducer)
 
 
     /**
@@ -67,7 +70,7 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      * The action will run at the end of the next cycle.
      * All pending reducers will be invoked and evaluated before.
      */
-    fun withState(action: Action<T>) {
+    override fun withState(action: Action<T>) {
         withStateFuture(action)
     }
 
@@ -75,7 +78,7 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
     /**
      * Same as [withState] but wont use receiver function
      */
-    fun withStateIt(action: ItAction<T>) = withState(action)
+    override fun withStateIt(action: ItAction<T>) = withState(action)
 
 
     /**
@@ -102,7 +105,7 @@ interface Quantum<T> : Quitable, QuitedObservable, StateObservable<T> {
      * If you want to create a diff: Use live-data or rxJava to diff against
      * the actual last state!
      */
-    val history: History<T>
+    override val history: History<T>
 
 
     /**
