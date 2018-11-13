@@ -119,12 +119,12 @@ fun loadContent() = quantum.setState {
 fun onContentLoaded(content: Content) = setState {
     // Content loaded: 
     // Copy current state and clear any error
-    copy(content = content, error = null)
+    copy(content = content, error = null, isLoading = false)
 }
 
 fun onError(error: Error) = setState {
     // Copy current state but publish the error
-    copy(error = error)
+    copy(error = error, isLoading = false)
 }
 ```
 
