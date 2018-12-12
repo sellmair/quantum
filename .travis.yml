@@ -1,7 +1,8 @@
 language: java
 
 jdk:
-  - openjdk10
+  - oraclejdk8
+
 os: osx
 
 script:
