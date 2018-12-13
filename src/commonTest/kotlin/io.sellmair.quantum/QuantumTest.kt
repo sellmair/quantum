@@ -8,7 +8,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-@UseExperimental(ObsoleteCoroutinesApi::class)
 class QuantumTest {
 
     private val quant = Quantum(initial = TestState(value = 0), history = History())
@@ -48,6 +47,26 @@ class QuantumTest {
         assertEquals(1 + increments, history.count())
         assertEquals(TestState(0), history.first())
         assertEquals(increments, history.last().value)
+    }
+
+    @Test
+    fun `set increase count from many coroutines with bulk`() = runBlocking {
+        val coroutines = 100
+        val increments = 100
+
+        var jobs = arrayOf<Job>()
+        repeat(coroutines) {
+            jobs += launch(Dispatchers.Default) {
+                repeat(increments) {
+                    quant.set { state.copy(value = state.value + 1) }
+                }
+            }
+        }
+        for (job in jobs) job.join()
+
+        val history = quant.history()
+        assertEquals(1 + increments * coroutines, history.count())
+        assertEquals(TestState(increments * coroutines), history.last())
     }
 
 
