@@ -1,8 +1,8 @@
 package io.sellmair.quantum
 
 import io.sellmair.quantum.internal.QuantumDsl
+import io.sellmair.quantum.internal.invoke
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /*
 ################################################################################################
@@ -23,7 +23,7 @@ class State<T> internal constructor(
     */
 
     @QuantumDsl
-    suspend inline fun set(reducer: Access<T>.() -> T) = mutex.withLock {
+    suspend inline fun set(reducer: Access<T>.() -> T) = mutex {
         state = access.reducer()
         onState(state)
     }
