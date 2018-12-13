@@ -2,6 +2,12 @@ package io.sellmair.quantum.internal
 
 import io.sellmair.quantum.History
 
+/*
+################################################################################################
+INTERNAL API
+################################################################################################
+*/
+
 internal class NoHistory<T> : History<T> {
     override fun next(state: T): History<T> {
         return this
