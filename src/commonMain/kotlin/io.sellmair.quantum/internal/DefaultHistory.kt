@@ -11,8 +11,8 @@ INTERNAL API
 internal data class DefaultHistory<T>
 internal constructor(
     private val setting: History.Setting,
-    private val elements: Iterable<T> = emptyList()
-) : History<T> {
+    private val elements: Iterable<T> = emptyList()) : History<T> {
+
 
     /*
     ################################################################################################
@@ -32,6 +32,6 @@ internal constructor(
     }
 
     override fun iterator(): Iterator<T> {
-        return elements.iterator()
+        return elements.toList().iterator()
     }
 }

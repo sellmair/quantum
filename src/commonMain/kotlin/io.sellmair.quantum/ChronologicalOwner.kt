@@ -5,5 +5,4 @@ package io.sellmair.quantum
 PUBLIC API
 ################################################################################################
 */
-interface ChronologicalQuantum<T> : Owner<T>,
-    Chronological<T>
+interface ChronologicalOwner<T> : Chronological<T>, Owner<T>

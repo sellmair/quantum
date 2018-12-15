@@ -22,6 +22,12 @@ interface Owner<T> : CoroutineScope {
 
 
     suspend fun quit()
+
+    companion object Factory
 }
 
+/*
+suspend inline fun <T> Owner<T>.set(reducer: T.() -> T) {
 
+}
+*/

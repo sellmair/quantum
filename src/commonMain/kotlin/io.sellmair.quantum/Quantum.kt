@@ -18,13 +18,14 @@ PUBLIC API
 ################################################################################################
 */
 
+
 @UseExperimental(ExperimentalCoroutinesApi::class)
 class Quantum<T> constructor(
     initial: T,
     override val coroutineContext: CoroutineContext = EmptyCoroutineContext,
     private val mutex: Mutex = Mutex(),
     history: History<T> = History.none()) :
-    ChronologicalQuantum<T>, CoroutineScope {
+    ChronologicalOwner<T>, CoroutineScope {
 
     /*
     ################################################################################################
@@ -34,16 +35,17 @@ class Quantum<T> constructor(
 
     override fun enter(
         context: CoroutineContext,
-        action: suspend State<T>.() -> Unit) = launch(coroutineContext + context) {
+        action: suspend State<T>.() -> Unit) = launch(context) {
         action(_state)
     }
 
+
     override suspend fun history(): History<T> = mutex { _history }
 
-    override val states: ReceiveChannel<T> get() = broadcastChannel.openSubscription()
+    override val states: ReceiveChannel<T> get() = broadcast.openSubscription()
 
     override suspend fun quit() = mutex {
-        broadcastChannel.close()
+        broadcast.close()
         coroutineContext.cancel()
     }
 
@@ -61,7 +63,7 @@ class Quantum<T> constructor(
 
     private var _history = history.next(initial)
 
-    private var broadcastChannel: BroadcastChannel<T> = ConflatedBroadcastChannel(initial)
+    private var broadcast: BroadcastChannel<T> = ConflatedBroadcastChannel(initial)
 
     private suspend fun onState(state: T) {
         this.setHistory(state)
@@ -73,7 +75,7 @@ class Quantum<T> constructor(
     }
 
     private suspend fun broadcast(state: T) {
-        broadcastChannel.send(state)
+        broadcast.send(state)
     }
 
 }

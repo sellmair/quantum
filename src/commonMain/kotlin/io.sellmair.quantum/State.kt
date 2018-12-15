@@ -14,7 +14,7 @@ PUBLIC API
 class State<T> internal constructor(
     initial: T,
     @PublishedApi internal val onState: suspend (state: T) -> Unit,
-    @PublishedApi internal val mutex: Mutex = Mutex()) {
+    @PublishedApi internal val mutex: Mutex) {
 
     /*
     ################################################################################################

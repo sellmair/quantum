@@ -1,8 +1,11 @@
 package io.sellmair.quantum
 
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.toList
+import kotlinx.coroutines.launch
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,7 +22,7 @@ class QuantumTest {
 
     @Test
     fun `set once`() = runBlocking {
-        quant.enterBlocking {
+        quant.suspendEnter {
             set { state.copy(value = state.value + 1) }
             assertEquals(TestState(1), state)
         }
