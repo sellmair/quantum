@@ -3,4 +3,4 @@ language: java
 os: osx
 
 script:
-  - ./gradlew check
+  - ./gradlew check -i

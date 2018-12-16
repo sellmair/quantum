@@ -1,6 +1,5 @@
 package io.sellmair.quantum
 
-import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -33,10 +32,9 @@ class OwnerMapTest {
 
         var jobs = arrayOf<Job>()
 
-        repeat(coroutines) { cIndex ->
-            jobs += launch(Dispatchers.Default + CoroutineName("$cIndex")) {
-                repeat(increments) { iIndex ->
-                    println("Increment $iIndex from ${coroutineContext[CoroutineName]}")
+        repeat(coroutines) {
+            jobs += launch(Dispatchers.Default) {
+                repeat(increments) {
                     projection.state.set { copy(value = value + 1) }
                 }
             }
