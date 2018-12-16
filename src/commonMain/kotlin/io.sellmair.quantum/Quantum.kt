@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.launch
@@ -33,19 +34,17 @@ class Quantum<T> constructor(
     ################################################################################################
     */
 
-    override fun enter(
-        context: CoroutineContext,
-        action: suspend State<T>.() -> Unit) = launch(context) {
-        action(_state)
-    }
-
-
     override suspend fun history(): History<T> = mutex { _history }
 
     override val states: ReceiveChannel<T> get() = broadcast.openSubscription()
 
-    override suspend fun quit() = mutex {
-        broadcast.close()
+    override val state = State(
+        initial = initial,
+        mutex = mutex,
+        onState = { state -> onState(state) })
+
+    override suspend fun quit(): Unit = mutex {
+        broadcast.cancel()
         coroutineContext.cancel()
     }
 
@@ -56,14 +55,10 @@ class Quantum<T> constructor(
     ################################################################################################
     */
 
-    private val _state = State(
-        initial = initial,
-        mutex = mutex,
-        onState = { state -> onState(state) })
 
     private var _history = history.next(initial)
 
-    private var broadcast: BroadcastChannel<T> = ConflatedBroadcastChannel(initial)
+    private var broadcast: BroadcastChannel<T> = BroadcastChannel(Channel.CONFLATED)
 
     private suspend fun onState(state: T) {
         this.setHistory(state)
@@ -77,6 +72,5 @@ class Quantum<T> constructor(
     private suspend fun broadcast(state: T) {
         broadcast.send(state)
     }
-
 }
 

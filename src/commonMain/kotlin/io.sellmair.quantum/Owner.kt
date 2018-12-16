@@ -1,10 +1,8 @@
 package io.sellmair.quantum
 
+import io.sellmair.quantum.internal.QuantumDsl
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
 
 /*
 ################################################################################################
@@ -16,18 +14,16 @@ interface Owner<T> : CoroutineScope {
 
     val states: ReceiveChannel<T>
 
-    fun enter(
-        context: CoroutineContext = EmptyCoroutineContext,
-        action: suspend State<T>.() -> Unit): Job
-
+    val state: State<T>
 
     suspend fun quit()
 
     companion object Factory
 }
 
-/*
-suspend inline fun <T> Owner<T>.set(reducer: T.() -> T) {
 
+@QuantumDsl
+suspend inline fun <T> Owner<T>.set(reducer: Access<T>.() -> T) {
+    state.setWithAccess(reducer)
 }
-*/
+

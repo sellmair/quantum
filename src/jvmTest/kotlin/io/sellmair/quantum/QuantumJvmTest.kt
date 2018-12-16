@@ -24,7 +24,7 @@ class QuantumJvmTest {
             threads += thread {
                 runBlocking {
                     repeat(increments) {
-                        quant.set { state.copy(value = state.value + 1) }
+                        quant.state.set { copy(value = value + 1) }
                     }
                 }
             }

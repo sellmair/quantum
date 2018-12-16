@@ -23,9 +23,16 @@ class State<T> internal constructor(
     */
 
     @QuantumDsl
-    suspend inline fun set(reducer: Access<T>.() -> T) = mutex {
-        state = access.reducer()
-        onState(state)
+    suspend inline fun set(reducer: T.() -> T) = mutex {
+        value = reducer(value)
+        onState(value)
+    }
+
+    @QuantumDsl
+    @PublishedApi
+    internal suspend inline fun setWithAccess(reducer: Access<T>.() -> T) = mutex {
+        value = access.reducer()
+        onState(value)
     }
 
 
@@ -36,10 +43,10 @@ class State<T> internal constructor(
     */
 
     @PublishedApi
-    internal var state: T = initial
+    internal var value: T = initial
 
     @PublishedApi
     internal val access: Access<T> = object : Access<T> {
-        override val state: T get() = this@State.state
+        override val state: T get() = this@State.value
     }
 }

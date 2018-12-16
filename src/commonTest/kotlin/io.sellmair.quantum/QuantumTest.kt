@@ -1,11 +1,7 @@
 package io.sellmair.quantum
 
-
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.toList
-import kotlinx.coroutines.launch
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -13,21 +9,20 @@ import kotlin.test.assertTrue
 
 class QuantumTest {
 
-    private val quant = Quantum(initial = TestState(value = 0), history = History())
+    private val owner = Quantum(initial = TestState(value = 0), history = History())
 
     @AfterTest
     fun quit() = runBlocking {
-        quant.quit()
+        owner.quit()
     }
 
     @Test
     fun `set once`() = runBlocking {
-        quant.suspendEnter {
-            set { state.copy(value = state.value + 1) }
-            assertEquals(TestState(1), state)
-        }
+        owner.state.set { copy(value = value + 1) }
+        assertEquals(TestState(1), owner.state.value)
 
-        val history = quant.history().toList()
+
+        val history = owner.history().toList()
         assertEquals(2, history.count())
         assertEquals(TestState(0), history[0])
         assertEquals(TestState(1), history[1])
@@ -41,12 +36,12 @@ class QuantumTest {
         var jobs = arrayOf<Job>()
         repeat(increments) {
             jobs += launch(Dispatchers.Default) {
-                quant.set { state.copy(value = state.value + 1) }
+                owner.state.set { copy(value = value + 1) }
             }
         }
         for (job in jobs) job.join()
 
-        val history = quant.history()
+        val history = owner.history()
         assertEquals(1 + increments, history.count())
         assertEquals(TestState(0), history.first())
         assertEquals(increments, history.last().value)
@@ -61,13 +56,13 @@ class QuantumTest {
         repeat(coroutines) {
             jobs += launch(Dispatchers.Default) {
                 repeat(increments) {
-                    quant.set { state.copy(value = state.value + 1) }
+                    owner.state.set { copy(value = value + 1) }
                 }
             }
         }
         for (job in jobs) job.join()
 
-        val history = quant.history()
+        val history = owner.history()
         assertEquals(1 + increments * coroutines, history.count())
         assertEquals(TestState(increments * coroutines), history.last())
     }
@@ -77,12 +72,13 @@ class QuantumTest {
     fun `states receives updates in order and last state`() = runBlocking {
         val increments = 10_000
 
-        val statesAsync = async { quant.states.toList() }
+        val statesAsync = async { owner.states.toList() }
 
-        repeat(increments) { quant.set { state.copy(value = state.value + 1) } }
-        quant.quit()
+        repeat(increments) { owner.state.set { copy(value = value + 1) } }
+        yield()
+        owner.quit()
 
-        val history = quant.history()
+        val history = owner.history()
         val states = statesAsync.await()
 
         assertEquals(1 + increments, history.count())
@@ -92,13 +88,14 @@ class QuantumTest {
 
     @Test
     fun `states with multiple subscription receive last state`() = runBlocking {
-        val increments = 10_000
+        val increments = 1_000
 
-        val states1Async = async { quant.states.toList() }
-        val states2Async = async { quant.states.toList() }
+        val states1Async = async { owner.states.toList() }
+        val states2Async = async { owner.states.toList() }
 
-        repeat(increments) { quant.set { state.copy(value = state.value + 1) } }
-        quant.quit()
+        repeat(increments) { owner.state.set { copy(value = value + 1) } }
+        yield()
+        owner.quit()
 
         val states1 = states1Async.await()
         val states2 = states2Async.await()
