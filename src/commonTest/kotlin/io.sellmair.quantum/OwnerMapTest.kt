@@ -28,15 +28,15 @@ class OwnerMapTest {
 
     @Test
     fun `projected set from multiple coroutines`() = runBlocking {
-        val increments = 1000
-        val coroutines = 100
+        val increments = 100
+        val coroutines = 50
 
         var jobs = arrayOf<Job>()
 
         repeat(coroutines) { cIndex ->
             jobs += launch(Dispatchers.Default + CoroutineName("$cIndex")) {
                 repeat(increments) { iIndex ->
-                    print("Increment $iIndex from ${coroutineContext[CoroutineName]}")
+                    println("Increment $iIndex from ${coroutineContext[CoroutineName]}")
                     projection.state.set { copy(value = value + 1) }
                 }
             }
@@ -52,8 +52,8 @@ class OwnerMapTest {
 
     @Test
     fun `projected set from multiple coroutines and competition`() = runBlocking {
-        val increments = 1000
-        val coroutines = 100
+        val increments = 100
+        val coroutines = 50
 
         var jobs = arrayOf<Job>()
 

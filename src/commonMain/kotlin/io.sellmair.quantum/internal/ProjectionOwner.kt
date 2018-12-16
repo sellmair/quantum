@@ -63,13 +63,7 @@ internal class ProjectionOwner<T, Projection>(
         return owner.states.map { t -> projection(t) }
     }
 
-    private fun createProjectionAccess() = object : Access<Projection> {
-
-        /**
-         * Getter is expected to be still called inside the mutex
-         */
-        override val state: Projection get() = projection(owner.state.value)
-    }
+    private fun createProjectionAccess() = ProjectionAccess()
 
     /**
      * Method is expected to be still called by inside of the mutex
@@ -78,5 +72,21 @@ internal class ProjectionOwner<T, Projection>(
         val state = owner.state.value
         val newState = connection(state, projection)
         owner.state.onState(newState)
+    }
+
+
+    /*
+    ################################################################################################
+    PRIVATE API
+    ################################################################################################
+    */
+
+    private inner class ProjectionAccess : Access<Projection> {
+        override val state: Projection
+            /**
+             * Getter is expected to be still called inside the mutex
+             */
+            get() = projection(owner.state.value)
+
     }
 }
