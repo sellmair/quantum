@@ -19,7 +19,7 @@ apply plugin: 'maven-publish'
 
 
 group 'io.sellmair'
-version '2.0.0-alpha.1-SNAPSHOT'
+version '2.0.0-alpha.0'
 
 
 kotlin {
