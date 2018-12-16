@@ -79,9 +79,7 @@ internal class OwnerImpl<T> constructor(
 
     private var broadcast: BroadcastChannel<T> = BroadcastChannel(Channel.CONFLATED)
 
-    private val access = object : Access<T> {
-        override var state: T = initial
-    }
+    private val access = MutableAccess(initial)
 
     private suspend fun onState(state: T) {
         this.access.state = state
@@ -95,6 +93,16 @@ internal class OwnerImpl<T> constructor(
 
     private suspend fun broadcast(state: T) {
         broadcast.send(state)
+    }
+
+    /*
+    ################################################################################################
+    PRIVATE API
+    ################################################################################################
+    */
+
+    private inner class MutableAccess<T>(initial: T) : Access<T> {
+        override var state: T = initial
     }
 }
 
