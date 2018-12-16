@@ -10,7 +10,7 @@ INTERNAL API
 
 internal data class DefaultHistory<T>
 internal constructor(
-    private val setting: History.Setting,
+    override val setting: History.Setting,
     private val elements: Iterable<T> = emptyList()) : History<T> {
 
 

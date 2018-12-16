@@ -7,9 +7,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class QuantumTest {
+class OwnerImplTest {
 
-    private val owner = Quantum(initial = TestState(value = 0), history = History())
+    private val owner = createTestOwner(TestState(0))
 
     @AfterTest
     fun quit() = runBlocking {

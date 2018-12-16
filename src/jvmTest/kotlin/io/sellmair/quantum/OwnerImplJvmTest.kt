@@ -1,13 +1,20 @@
 package io.sellmair.quantum
 
+import io.sellmair.quantum.internal.OwnerImpl
+import kotlinx.coroutines.sync.Mutex
 import kotlin.concurrent.thread
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class QuantumJvmTest {
+class OwnerImplJvmTest {
 
-    private val quant = Quantum(TestState(), history = History())
+    private val quant = OwnerImpl(
+        TestState(),
+        history = History(),
+        coroutineContext = EmptyCoroutineContext,
+        mutex = Mutex())
 
     @AfterTest
     fun quit() = runBlocking {

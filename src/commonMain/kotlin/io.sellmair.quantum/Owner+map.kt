@@ -1,7 +1,6 @@
 package io.sellmair.quantum
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.ReceiveChannel
+import io.sellmair.quantum.internal.ProjectionOwnerConnectable
 
 /*
 ################################################################################################
@@ -9,17 +8,8 @@ PUBLIC API
 ################################################################################################
 */
 
-interface Owner<T> : CoroutineScope {
-
-    val states: ReceiveChannel<T>
-
-    val state: State<T>
-
-    suspend fun quit()
-
-    companion object Factory
+fun <T, Projection> Owner<T>.map(projection: (T) -> Projection): Connectable<T, Projection> {
+    return ProjectionOwnerConnectable(this, projection)
 }
-
-
 
 

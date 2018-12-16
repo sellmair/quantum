@@ -31,6 +31,8 @@ interface History<T> : Iterable<T> {
         }
     }
 
+    val setting: History.Setting
+
     fun next(state: T): History<T>
 
     companion object Factory

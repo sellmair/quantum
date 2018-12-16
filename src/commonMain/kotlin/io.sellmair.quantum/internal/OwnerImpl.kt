@@ -1,14 +1,13 @@
-package io.sellmair.quantum
+package io.sellmair.quantum.internal
 
-import io.sellmair.quantum.internal.invoke
+import io.sellmair.quantum.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -19,13 +18,31 @@ PUBLIC API
 ################################################################################################
 */
 
+operator fun <T> Owner.Factory.invoke(
+    initial: T,
+    coroutineContext: CoroutineContext = EmptyCoroutineContext + Job(),
+    mutex: Mutex = Mutex(),
+    history: History<T> = History.none()): ChronologicalOwner<T> {
+    return OwnerImpl(
+        initial = initial,
+        coroutineContext = coroutineContext,
+        mutex = mutex,
+        history = history)
+}
+
+
+/*
+################################################################################################
+INTERNAL API
+################################################################################################
+*/
 
 @UseExperimental(ExperimentalCoroutinesApi::class)
-class Quantum<T> constructor(
+internal class OwnerImpl<T> constructor(
     initial: T,
-    override val coroutineContext: CoroutineContext = EmptyCoroutineContext,
-    private val mutex: Mutex = Mutex(),
-    history: History<T> = History.none()) :
+    override val coroutineContext: CoroutineContext,
+    private val mutex: Mutex,
+    history: History<T>) :
     ChronologicalOwner<T>, CoroutineScope {
 
     /*
@@ -38,10 +55,12 @@ class Quantum<T> constructor(
 
     override val states: ReceiveChannel<T> get() = broadcast.openSubscription()
 
-    override val state = State(
-        initial = initial,
-        mutex = mutex,
-        onState = { state -> onState(state) })
+    override val state by lazy {
+        State(
+            access = this.access,
+            mutex = mutex,
+            onState = { state -> onState(state) })
+    }
 
     override suspend fun quit(): Unit = mutex {
         broadcast.cancel()
@@ -60,7 +79,12 @@ class Quantum<T> constructor(
 
     private var broadcast: BroadcastChannel<T> = BroadcastChannel(Channel.CONFLATED)
 
+    private val access = object : Access<T> {
+        override var state: T = initial
+    }
+
     private suspend fun onState(state: T) {
+        this.access.state = state
         this.setHistory(state)
         this.broadcast(state)
     }
