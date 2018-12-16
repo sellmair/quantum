@@ -61,11 +61,11 @@ kotlin {
             dependsOn commonTest
         }
 
-        iosMain {
+        iosArm64Main {
             dependsOn macosMain
         }
 
-        iosTest {
+        iosArm64Test {
             dependsOn macosTest
         }
 
@@ -75,7 +75,7 @@ kotlin {
     targets {
         fromPreset(presets.jvm, 'jvm')
         fromPreset(presets.macosX64, 'macos')
-        fromPreset(presets.iosArm64, 'ios')
+        fromPreset(presets.iosArm64, 'iosArm64')
 
         all {
             compilations.all {
