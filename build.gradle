@@ -16,12 +16,13 @@ repositories {
 }
 
 apply plugin: 'maven-publish'
+
+
 group 'io.sellmair'
-version '2.0.0-SNAPSHOT'
+version '2.0.0-alpha.0'
 
 
 kotlin {
-    
     sourceSets {
         commonMain {
             dependencies {
@@ -50,22 +51,31 @@ kotlin {
             }
         }
 
-        nativeMain {
+        macosMain {
             dependencies {
                 implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core-native:1.0.1'
             }
         }
 
-        nativeTest {
+        macosTest {
             dependsOn commonTest
         }
-        
+
+        iosMain {
+            dependsOn macosMain
+        }
+
+        iosTest {
+            dependsOn macosTest
+        }
+
     }
 
 
     targets {
         fromPreset(presets.jvm, 'jvm')
-        fromPreset(presets.macosX64, 'native')
+        fromPreset(presets.macosX64, 'macos')
+        fromPreset(presets.iosArm64, 'ios')
 
         all {
             compilations.all {
@@ -76,3 +86,9 @@ kotlin {
         }
     }
 }
+
+
+
+
+
+
