@@ -7,16 +7,19 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class OwnerMapTest {
-    data class ChildState(val value: Int)
+    data class ChildChildState(val value: Int)
+    data class ChildState(val value: Int, val child: ChildChildState = ChildChildState(0))
     private data class State(val value: Int, val child: ChildState)
 
-    private val master = createTestOwner(State(0, ChildState(0)))
+    private val master = createTestOwner(State(0, ChildState(0, ChildChildState(0))))
 
     private val projection = master.map(State::child).connect { copy(child = it) }
 
+    private val projection2 = projection.map(ChildState::child).connect { copy(child = it) }
+
 
     @Test
-    fun `projected set is reflected in master history`() = runBlocking {
+    fun `projection -- set -- is reflected in master history`() = runBlocking {
         projection.state.set { copy(value = 1) }
 
         val history = master.history().toList()
@@ -26,7 +29,7 @@ class OwnerMapTest {
     }
 
     @Test
-    fun `projected set from multiple coroutines`() = runBlocking {
+    fun `projection -- set -- from multiple coroutines`() = runBlocking {
         val increments = 100
         val coroutines = 50
 
@@ -49,7 +52,7 @@ class OwnerMapTest {
 
 
     @Test
-    fun `projected set from multiple coroutines and competition`() = runBlocking {
+    fun `projection -- set -- from multiple coroutines and competition`() = runBlocking {
         val increments = 100
         val coroutines = 50
 
@@ -76,5 +79,30 @@ class OwnerMapTest {
         val history = master.history().toList()
         assertEquals(1 + 2 * coroutines * increments, history.size)
         assertEquals(State(coroutines * increments, ChildState(coroutines * increments)), history.last())
+    }
+
+
+    @Test
+    fun `projection2 -- set -- is reflected in master history`() = runBlocking {
+        projection2.set { ChildChildState(1) }
+
+        val history = master.history().toList()
+        assertEquals(2, history.size)
+        assertEquals(State(0, ChildState(0, ChildChildState(1))), history.last())
+    }
+
+
+    @Test
+    fun `projection projection2 and master -- set -- is reflected in master history`() = runBlocking {
+        projection2.state.set { copy(value = 1) }
+        master.state.set { copy(value = 1) }
+        projection.state.set { copy(value = 1) }
+
+        val history = master.history().toList()
+        assertEquals(4, history.size)
+        assertEquals(State(0, ChildState(0, ChildChildState(0))), history[0])
+        assertEquals(State(0, ChildState(0, ChildChildState(1))), history[1])
+        assertEquals(State(1, ChildState(0, ChildChildState(1))), history[2])
+        assertEquals(State(1, ChildState(1, ChildChildState(1))), history[3])
     }
 }
