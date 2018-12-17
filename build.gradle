@@ -19,8 +19,13 @@ apply plugin: 'maven-publish'
 
 
 group 'io.sellmair'
-version '2.0.0-alpha.0'
+version '2.0.0-alpha.1'
 
+
+// TODO work around for https://youtrack.jetbrains.com/issue/KT-27170
+configurations {
+    compileClasspath
+}
 
 kotlin {
     sourceSets {
@@ -69,6 +74,14 @@ kotlin {
             dependsOn macosTest
         }
 
+        iosX64Main {
+            dependsOn macosMain
+        }
+
+        iosX64Test {
+            dependsOn macosTest
+        }
+
     }
 
 
@@ -76,6 +89,7 @@ kotlin {
         fromPreset(presets.jvm, 'jvm')
         fromPreset(presets.macosX64, 'macos')
         fromPreset(presets.iosArm64, 'iosArm64')
+        fromPreset(presets.iosX64, 'iosX64')
 
         all {
             compilations.all {
