@@ -6,7 +6,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BroadcastChannel
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.sync.Mutex
 import kotlin.coroutines.CoroutineContext
@@ -77,7 +77,7 @@ internal class OwnerImpl<T> constructor(
 
     private var _history = history.next(initial)
 
-    private var broadcast: BroadcastChannel<T> = BroadcastChannel(Channel.CONFLATED)
+    private var broadcast: BroadcastChannel<T> = ConflatedBroadcastChannel(initial)
 
     private val access = MutableAccess(initial)
 

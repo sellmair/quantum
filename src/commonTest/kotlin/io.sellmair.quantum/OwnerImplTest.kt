@@ -104,6 +104,14 @@ class OwnerImplTest {
 
 
     @Test
+    fun `states receives initial state`() = runBlocking {
+        val stateAsync = async { owner.states.receive() }
+        val state = stateAsync.await()
+        assertEquals(TestState(0), state)
+    }
+
+
+    @Test
     fun `set inline return`() = runBlocking {
         run {
             owner.set {
