@@ -9,4 +9,5 @@ INTERNAL API
 ################################################################################################
 */
 
+@PublishedApi
 internal suspend inline operator fun <T> Mutex.invoke(action: () -> T) = withLock(action = action)

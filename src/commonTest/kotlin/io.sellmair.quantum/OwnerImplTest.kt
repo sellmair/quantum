@@ -2,10 +2,8 @@ package io.sellmair.quantum
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.toList
-import kotlin.test.AfterTest
+import kotlin.test.*
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class OwnerImplTest {
 
@@ -102,6 +100,21 @@ class OwnerImplTest {
 
         assertEquals(TestState(increments), states1.last())
         assertEquals(TestState(increments), states2.last())
+    }
+
+
+    @Test
+    fun `set inline return`() = runBlocking {
+        run {
+            owner.set {
+                return@run
+            }
+
+            fail("Did not return")
+        }
+
+        val history = owner.history().toList()
+        assertEquals(1, history.size)
     }
 }
 
